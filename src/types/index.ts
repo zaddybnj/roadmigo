@@ -24,6 +24,7 @@ export interface Trip {
   userAvatar: string;
   title: string;
   description: string;
+  notes?: string;
   startDate: string;
   endDate: string;
   distance: number;
@@ -35,6 +36,29 @@ export interface Trip {
   comments: number;
   privacy: 'public' | 'friends' | 'private';
   isLiked: boolean;
+  status: 'active' | 'completed' | 'draft';
+}
+
+export interface ActiveTrip {
+  id: string;
+  title: string;
+  startDate: string;
+  startLocation: string;
+  currentMiles: number;
+  statesVisited: string[];
+  daysOnRoad: number;
+  waypoints: Waypoint[];
+  photos: string[];
+  notes: string;
+}
+
+export interface Waypoint {
+  id: string;
+  lat: number;
+  lng: number;
+  timestamp: string;
+  location: string;
+  state: string;
 }
 
 export interface Badge {

@@ -39,6 +39,7 @@ export const trips: Trip[] = [
     comments: 45,
     privacy: 'public',
     isLiked: false,
+    status: 'completed',
   },
   {
     id: '2',
@@ -58,6 +59,7 @@ export const trips: Trip[] = [
     comments: 32,
     privacy: 'public',
     isLiked: true,
+    status: 'completed',
   },
   {
     id: '3',
@@ -77,6 +79,7 @@ export const trips: Trip[] = [
     comments: 67,
     privacy: 'public',
     isLiked: false,
+    status: 'completed',
   },
 ];
 
