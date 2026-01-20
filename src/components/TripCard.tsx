@@ -2,6 +2,7 @@ import { Trip } from '@/types';
 import { Heart, MessageCircle, Share2, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface TripCardProps {
   trip: Trip;
@@ -28,32 +29,34 @@ export const TripCard = ({ trip }: TripCardProps) => {
       animate={{ opacity: 1, y: 0 }}
       className="bg-card rounded-lg overflow-hidden card-elevated"
     >
-      {/* Trip Preview Image */}
-      <div className="relative h-48 overflow-hidden">
-        {trip.photos.length > 0 ? (
-          <img 
-            src={trip.photos[0]} 
-            alt={trip.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full gradient-forest" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            {trip.states.map((state) => (
-              <span
-                key={state}
-                className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded-full backdrop-blur-sm"
-              >
-                {state}
-              </span>
-            ))}
+      {/* Trip Preview Image - Clickable */}
+      <Link to={`/trip/${trip.id}`}>
+        <div className="relative h-48 overflow-hidden">
+          {trip.photos.length > 0 ? (
+            <img 
+              src={trip.photos[0]} 
+              alt={trip.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full gradient-forest" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              {trip.states.map((state) => (
+                <span
+                  key={state}
+                  className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded-full backdrop-blur-sm"
+                >
+                  {state}
+                </span>
+              ))}
+            </div>
+            <h3 className="font-display font-bold text-lg text-foreground">{trip.title}</h3>
           </div>
-          <h3 className="font-display font-bold text-lg text-foreground">{trip.title}</h3>
         </div>
-      </div>
+      </Link>
 
       {/* Trip Info */}
       <div className="p-4">
