@@ -70,10 +70,43 @@ export interface Badge {
   unlockedAt?: string;
   progress?: number;
   maxProgress?: number;
+  category?: string;
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 export interface Achievement {
   id: string;
   category: string;
   badges: Badge[];
+}
+
+export interface Trophy {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  rarity: 'rare' | 'epic' | 'legendary';
+  unlockedAt?: string;
+  condition: string;
+}
+
+export interface Streak {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  currentCount: number;
+  bestCount: number;
+  unit: string;
+  lastUpdated: string;
+  isActive: boolean;
+}
+
+export interface GamificationData {
+  achievements: Achievement[];
+  trophies: Trophy[];
+  streaks: Streak[];
+  level: number;
+  xp: number;
+  xpToNextLevel: number;
 }

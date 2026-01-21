@@ -1,99 +1,196 @@
 import { Header } from '@/components/Header';
 import { BadgeCard } from '@/components/BadgeCard';
-import { achievements } from '@/data/mockData';
+import { TrophyCard } from '@/components/TrophyCard';
+import { StreakCard } from '@/components/StreakCard';
+import { LevelProgress } from '@/components/LevelProgress';
+import { ShareableAchievement } from '@/components/ShareableAchievement';
+import { achievements, trophies, streaks, gamificationData } from '@/data/mockData';
+import { Badge, Trophy } from '@/types';
 import { motion } from 'framer-motion';
-import { Trophy, Star, Zap } from 'lucide-react';
+import { Trophy as TrophyIcon, Flame, Award, Target, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const AchievementsPage = () => {
+  const [shareItem, setShareItem] = useState<{ badge?: Badge; trophy?: Trophy } | null>(null);
+  
   const totalBadges = achievements.reduce((acc, cat) => acc + cat.badges.length, 0);
   const unlockedBadges = achievements.reduce(
     (acc, cat) => acc + cat.badges.filter((b) => b.unlockedAt).length,
     0
   );
+  const unlockedTrophies = trophies.filter((t) => t.unlockedAt).length;
+  const activeStreaks = streaks.filter((s) => s.isActive).length;
+
+  // Find next closest milestone
+  const nextMilestone = achievements
+    .flatMap((cat) => cat.badges)
+    .filter((b) => !b.unlockedAt && b.progress !== undefined && b.maxProgress !== undefined)
+    .sort((a, b) => {
+      const aProgress = (a.progress! / a.maxProgress!) * 100;
+      const bProgress = (b.progress! / b.maxProgress!) * 100;
+      return bProgress - aProgress;
+    })[0];
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-24">
       <Header title="Achievements" />
 
       <main className="px-4 py-4 max-w-lg mx-auto">
-        {/* Achievement Summary */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-xl p-4 border border-yellow-500/30 mb-6"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full gradient-achievement flex items-center justify-center glow-achievement">
-              <Trophy className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Badges Earned</p>
-              <p className="font-display text-3xl font-bold">
-                <span className="text-gradient-sunset">{unlockedBadges}</span>
-                <span className="text-muted-foreground text-lg font-normal"> / {totalBadges}</span>
-              </p>
-              <div className="flex items-center gap-1 mt-1">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <span className="text-xs text-muted-foreground">Road Warrior Level</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+        {/* Level Progress */}
+        <LevelProgress 
+          level={gamificationData.level} 
+          xp={gamificationData.xp} 
+          xpToNextLevel={gamificationData.xpToNextLevel}
+        />
 
-        {/* Next Badge Progress */}
+        {/* Quick Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-card rounded-xl p-4 card-elevated mb-6"
+          className="grid grid-cols-3 gap-3 mt-4"
         >
-          <div className="flex items-center gap-2 mb-3">
-            <Zap className="w-5 h-5 text-primary" />
-            <h3 className="font-display font-semibold">Next Milestone</h3>
+          <div className="bg-card rounded-xl p-3 text-center card-elevated">
+            <Award className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
+            <p className="font-display text-xl font-bold">{unlockedBadges}</p>
+            <p className="text-[10px] text-muted-foreground">Badges</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-              <span className="text-xl">🏆</span>
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-sm">Explorer Elite</p>
-              <p className="text-xs text-muted-foreground mb-2">Travel 25,000 miles</p>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: '98%' }}
-                  transition={{ duration: 1.5, delay: 0.5 }}
-                  className="h-full gradient-sunset rounded-full"
-                />
-              </div>
-              <p className="text-xs text-primary mt-1 font-medium">433 miles to go!</p>
-            </div>
+          <div className="bg-card rounded-xl p-3 text-center card-elevated">
+            <TrophyIcon className="w-5 h-5 text-purple-500 mx-auto mb-1" />
+            <p className="font-display text-xl font-bold">{unlockedTrophies}</p>
+            <p className="text-[10px] text-muted-foreground">Trophies</p>
+          </div>
+          <div className="bg-card rounded-xl p-3 text-center card-elevated">
+            <Flame className="w-5 h-5 text-orange-500 mx-auto mb-1" />
+            <p className="font-display text-xl font-bold">{activeStreaks}</p>
+            <p className="text-[10px] text-muted-foreground">Streaks</p>
           </div>
         </motion.div>
 
-        {/* Achievement Categories */}
+        {/* Active Streaks */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-6"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Flame className="w-5 h-5 text-orange-500" />
+              <h3 className="font-display font-semibold">Active Streaks</h3>
+            </div>
+            <span className="text-xs text-muted-foreground">Keep them going!</span>
+          </div>
+          <div className="space-y-3">
+            {streaks.filter((s) => s.isActive).slice(0, 2).map((streak, index) => (
+              <StreakCard key={streak.id} streak={streak} index={index} />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Next Milestone */}
+        {nextMilestone && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-card rounded-xl p-4 card-elevated mt-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold">Next Milestone</h3>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center glow-achievement">
+                <span className="text-2xl">{nextMilestone.icon}</span>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">{nextMilestone.name}</p>
+                <p className="text-xs text-muted-foreground mb-2">{nextMilestone.description}</p>
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(nextMilestone.progress! / nextMilestone.maxProgress!) * 100}%` }}
+                    transition={{ duration: 1.5, delay: 0.5 }}
+                    className="h-full gradient-sunset relative rounded-full"
+                  >
+                    <div className="absolute inset-0 shimmer" />
+                  </motion.div>
+                </div>
+                <p className="text-xs text-primary mt-1.5 font-semibold">
+                  {(nextMilestone.maxProgress! - nextMilestone.progress!).toLocaleString()} {nextMilestone.name.includes('Mile') ? 'miles' : 'more'} to go!
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Trophy Case Preview */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-6"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <TrophyIcon className="w-5 h-5 text-yellow-500" />
+              <h3 className="font-display font-semibold">Trophy Case</h3>
+            </div>
+            <Link to="/profile" className="flex items-center gap-1 text-xs text-primary">
+              View all <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {trophies.filter((t) => t.unlockedAt).slice(0, 2).map((trophy, index) => (
+              <TrophyCard 
+                key={trophy.id} 
+                trophy={trophy} 
+                index={index}
+                onShare={(t) => setShareItem({ trophy: t })}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Badge Categories */}
         {achievements.map((category, catIndex) => (
           <motion.div
             key={category.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + catIndex * 0.1 }}
-            className="mb-6"
+            transition={{ delay: 0.5 + catIndex * 0.1 }}
+            className="mt-6"
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display font-semibold">{category.category}</h3>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground px-2 py-0.5 bg-muted rounded-full">
                 {category.badges.filter((b) => b.unlockedAt).length}/{category.badges.length}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {category.badges.map((badge, index) => (
-                <BadgeCard key={badge.id} badge={badge} index={index} />
+                <div 
+                  key={badge.id} 
+                  onClick={() => badge.unlockedAt && setShareItem({ badge })}
+                  className={badge.unlockedAt ? 'cursor-pointer' : ''}
+                >
+                  <BadgeCard badge={badge} index={index} />
+                </div>
               ))}
             </div>
           </motion.div>
         ))}
       </main>
+
+      {/* Shareable Achievement Modal */}
+      <ShareableAchievement
+        badge={shareItem?.badge}
+        trophy={shareItem?.trophy}
+        isOpen={!!shareItem}
+        onClose={() => setShareItem(null)}
+      />
     </div>
   );
 };
