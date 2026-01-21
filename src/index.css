@@ -141,6 +141,34 @@
   .glow-achievement {
     box-shadow: 0 0 30px -5px hsl(45 100% 50% / 0.4);
   }
+
+  .glow-legendary {
+    box-shadow: 0 0 40px -5px hsl(280 80% 60% / 0.5);
+  }
+
+  .glow-epic {
+    box-shadow: 0 0 35px -5px hsl(265 70% 55% / 0.4);
+  }
+
+  .glow-rare {
+    box-shadow: 0 0 25px -5px hsl(200 80% 50% / 0.4);
+  }
+
+  .gradient-legendary {
+    background: linear-gradient(135deg, hsl(280 80% 60%) 0%, hsl(320 70% 50%) 50%, hsl(45 100% 60%) 100%);
+  }
+
+  .gradient-epic {
+    background: linear-gradient(135deg, hsl(265 70% 55%) 0%, hsl(285 60% 45%) 100%);
+  }
+
+  .gradient-rare {
+    background: linear-gradient(135deg, hsl(200 80% 50%) 0%, hsl(220 70% 45%) 100%);
+  }
+
+  .gradient-streak {
+    background: linear-gradient(135deg, hsl(25 100% 50%) 0%, hsl(10 90% 55%) 100%);
+  }
   
   .card-elevated {
     box-shadow: 0 10px 40px -10px hsl(0 0% 0% / 0.4);
@@ -152,5 +180,30 @@
   
   .safe-top {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(0 0% 100% / 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
   }
 }
