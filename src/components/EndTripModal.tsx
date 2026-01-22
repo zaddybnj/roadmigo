@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Flag, Lock, Users, Globe } from 'lucide-react';
-import { useTrip } from '@/context/TripContext';
-import { Trip } from '@/types';
+import { useTrip, Trip } from '@/context/TripContext';
 import { useNavigate } from 'react-router-dom';
 
 interface EndTripModalProps {
@@ -10,7 +9,9 @@ interface EndTripModalProps {
   onClose: () => void;
 }
 
-const privacyOptions: { value: Trip['privacy']; icon: React.ReactNode; label: string; desc: string }[] = [
+type Privacy = 'public' | 'friends' | 'private';
+
+const privacyOptions: { value: Privacy; icon: React.ReactNode; label: string; desc: string }[] = [
   { value: 'public', icon: <Globe className="w-5 h-5" />, label: 'Public', desc: 'Everyone can see' },
   { value: 'friends', icon: <Users className="w-5 h-5" />, label: 'Friends', desc: 'Only friends' },
   { value: 'private', icon: <Lock className="w-5 h-5" />, label: 'Private', desc: 'Only you' },
@@ -20,7 +21,7 @@ export const EndTripModal = ({ isOpen, onClose }: EndTripModalProps) => {
   const { activeTrip, endTrip } = useTrip();
   const navigate = useNavigate();
   const [description, setDescription] = useState('');
-  const [privacy, setPrivacy] = useState<Trip['privacy']>('public');
+  const [privacy, setPrivacy] = useState<Privacy>('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!activeTrip) return null;
@@ -29,14 +30,16 @@ export const EndTripModal = ({ isOpen, onClose }: EndTripModalProps) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    const completedTrip = endTrip(description.trim() || 'What an amazing adventure!', privacy);
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const completedTrip = await endTrip(description.trim() || 'What an amazing adventure!', privacy);
       setDescription('');
       onClose();
       navigate(`/trip/${completedTrip.id}`);
-    }, 500);
+    } catch (error) {
+      console.error('Error ending trip:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
