@@ -1,258 +1,464 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { Comment, SocialUser } from '@/types';
-import { currentUser } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { Tables } from '@/integrations/supabase/types';
+import { useToast } from '@/hooks/use-toast';
+
+type DbProfile = Tables<'profiles'>;
+type DbComment = Tables<'comments'>;
+
+export interface SocialUser {
+  id: string;
+  userId: string;
+  name: string;
+  username: string;
+  avatar: string;
+  bio: string;
+  stats: {
+    totalMiles: number;
+    totalTrips: number;
+    statesVisited: number;
+    nightsCamped: number;
+    photosShared: number;
+  };
+  isFollowing: boolean;
+  followersCount: number;
+  followingCount: number;
+}
+
+export interface Comment {
+  id: string;
+  tripId: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  content: string;
+  createdAt: string;
+  likes: number;
+  isLiked: boolean;
+}
 
 interface SocialContextType {
   following: string[];
   followers: string[];
   users: SocialUser[];
-  comments: Comment[];
-  likedTrips: string[];
-  followUser: (userId: string) => void;
-  unfollowUser: (userId: string) => void;
+  loading: boolean;
+  followUser: (userId: string) => Promise<void>;
+  unfollowUser: (userId: string) => Promise<void>;
   isFollowing: (userId: string) => boolean;
-  addComment: (tripId: string, content: string) => void;
-  deleteComment: (commentId: string) => void;
-  likeComment: (commentId: string) => void;
-  likeTrip: (tripId: string) => void;
-  unlikeTrip: (tripId: string) => void;
+  addComment: (tripId: string, content: string) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>;
+  likeComment: (commentId: string) => Promise<void>;
+  likeTrip: (tripId: string) => Promise<void>;
+  unlikeTrip: (tripId: string) => Promise<void>;
   isTripLiked: (tripId: string) => boolean;
-  getCommentsForTrip: (tripId: string) => Comment[];
-  getUserById: (userId: string) => SocialUser | undefined;
+  getCommentsForTrip: (tripId: string) => Promise<Comment[]>;
+  getUserById: (userId: string) => Promise<SocialUser | undefined>;
   getFriends: () => SocialUser[];
+  refreshSocialData: () => Promise<void>;
 }
 
 const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
-// Mock users for the social layer
-const mockUsers: SocialUser[] = [
-  {
-    id: '2',
-    name: 'Sarah Mitchell',
-    username: '@sarahrv',
-    avatar: '/placeholder.svg',
-    bio: 'Weekend warrior exploring the Southwest 🌵',
-    stats: { totalMiles: 15234, totalTrips: 32, statesVisited: 18, nightsCamped: 156, photosShared: 89 },
-    isFollowing: true,
-    followersCount: 245,
-    followingCount: 112,
+// Convert DB profile to SocialUser
+const profileToSocialUser = (
+  profile: DbProfile,
+  isFollowing: boolean,
+  followersCount: number,
+  followingCount: number
+): SocialUser => ({
+  id: profile.id,
+  userId: profile.user_id,
+  name: profile.display_name,
+  username: `@${profile.username}`,
+  avatar: profile.avatar_url || '/placeholder.svg',
+  bio: profile.bio || '',
+  stats: {
+    totalMiles: profile.total_miles || 0,
+    totalTrips: profile.total_trips || 0,
+    statesVisited: (profile.states_visited || []).length,
+    nightsCamped: profile.nights_camped || 0,
+    photosShared: profile.photos_shared || 0,
   },
-  {
-    id: '3',
-    name: 'Mike Chen',
-    username: '@mikeontheroad',
-    avatar: '/placeholder.svg',
-    bio: 'Retired and loving every mile of it! 🚐✨',
-    stats: { totalMiles: 45678, totalTrips: 89, statesVisited: 42, nightsCamped: 567, photosShared: 234 },
-    isFollowing: true,
-    followersCount: 892,
-    followingCount: 156,
-  },
-  {
-    id: '4',
-    name: 'Emily Parker',
-    username: '@emilyexplores',
-    avatar: '/placeholder.svg',
-    bio: 'National Park enthusiast. 23/63 parks visited!',
-    stats: { totalMiles: 28456, totalTrips: 45, statesVisited: 28, nightsCamped: 234, photosShared: 178 },
-    isFollowing: false,
-    followersCount: 567,
-    followingCount: 234,
-  },
-  {
-    id: '5',
-    name: 'David Thompson',
-    username: '@davidtrails',
-    avatar: '/placeholder.svg',
-    bio: 'Chasing mountain views and campfire nights 🏔️🔥',
-    stats: { totalMiles: 19876, totalTrips: 38, statesVisited: 22, nightsCamped: 189, photosShared: 145 },
-    isFollowing: false,
-    followersCount: 334,
-    followingCount: 189,
-  },
-  {
-    id: '6',
-    name: 'Lisa Rodriguez',
-    username: '@lisarvlife',
-    avatar: '/placeholder.svg',
-    bio: 'Full-time RVer with two dogs and zero regrets 🐕🐕',
-    stats: { totalMiles: 56789, totalTrips: 112, statesVisited: 48, nightsCamped: 890, photosShared: 456 },
-    isFollowing: true,
-    followersCount: 1234,
-    followingCount: 345,
-  },
-];
-
-const mockComments: Comment[] = [
-  {
-    id: 'c1',
-    tripId: '1',
-    userId: '2',
-    userName: 'Sarah Mitchell',
-    userAvatar: '/placeholder.svg',
-    content: 'This looks absolutely stunning! PCH is on my bucket list 😍',
-    createdAt: '2024-09-15T10:30:00Z',
-    likes: 12,
-    isLiked: false,
-  },
-  {
-    id: 'c2',
-    tripId: '1',
-    userId: '3',
-    userName: 'Mike Chen',
-    userAvatar: '/placeholder.svg',
-    content: 'Where did you camp along the way? Looking for recommendations!',
-    createdAt: '2024-09-15T14:45:00Z',
-    likes: 8,
-    isLiked: true,
-  },
-  {
-    id: 'c3',
-    tripId: '2',
-    userId: '1',
-    userName: 'Alex Rivera',
-    userAvatar: '/placeholder.svg',
-    content: 'Monument Valley sunsets are unreal. Great shots!',
-    createdAt: '2024-10-13T09:20:00Z',
-    likes: 15,
-    isLiked: false,
-  },
-  {
-    id: 'c4',
-    tripId: '3',
-    userId: '6',
-    userName: 'Lisa Rodriguez',
-    userAvatar: '/placeholder.svg',
-    content: 'New England fall is magical! We were there last year 🍂',
-    createdAt: '2024-10-21T16:00:00Z',
-    likes: 22,
-    isLiked: true,
-  },
-];
+  isFollowing,
+  followersCount,
+  followingCount,
+});
 
 export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [following, setFollowing] = useState<string[]>(() => {
-    const saved = localStorage.getItem('following');
-    return saved ? JSON.parse(saved) : ['2', '3', '6'];
-  });
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const [following, setFollowing] = useState<string[]>([]);
+  const [followers, setFollowers] = useState<string[]>([]);
+  const [users, setUsers] = useState<SocialUser[]>([]);
+  const [likedTrips, setLikedTrips] = useState<Set<string>>(new Set());
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
-  const [followers, setFollowers] = useState<string[]>(() => {
-    const saved = localStorage.getItem('followers');
-    return saved ? JSON.parse(saved) : ['2', '3', '4', '6'];
-  });
+  // Fetch social data from database
+  const fetchSocialData = useCallback(async () => {
+    if (!user) {
+      setFollowing([]);
+      setFollowers([]);
+      setUsers([]);
+      setLikedTrips(new Set());
+      setLikedComments(new Set());
+      setLoading(false);
+      return;
+    }
 
-  const [comments, setComments] = useState<Comment[]>(() => {
-    const saved = localStorage.getItem('comments');
-    return saved ? JSON.parse(saved) : mockComments;
-  });
+    try {
+      // Fetch following
+      const { data: followingData } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id);
 
-  const [likedTrips, setLikedTrips] = useState<string[]>(() => {
-    const saved = localStorage.getItem('likedTrips');
-    return saved ? JSON.parse(saved) : ['2'];
-  });
+      const followingIds = (followingData || []).map(f => f.following_id);
+      setFollowing(followingIds);
 
-  const [users] = useState<SocialUser[]>(mockUsers);
+      // Fetch followers
+      const { data: followersData } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('following_id', user.id);
 
-  // Persist to localStorage
+      const followerIds = (followersData || []).map(f => f.follower_id);
+      setFollowers(followerIds);
+
+      // Fetch liked trips
+      const { data: tripLikes } = await supabase
+        .from('trip_likes')
+        .select('trip_id')
+        .eq('user_id', user.id);
+
+      setLikedTrips(new Set((tripLikes || []).map(l => l.trip_id)));
+
+      // Fetch liked comments
+      const { data: commentLikes } = await supabase
+        .from('comment_likes')
+        .select('comment_id')
+        .eq('user_id', user.id);
+
+      setLikedComments(new Set((commentLikes || []).map(l => l.comment_id)));
+
+      // Fetch all public profiles (for discover/feed)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('user_id', user.id)
+        .limit(50);
+
+      // Get follower/following counts for each profile
+      const socialUsers = await Promise.all((profiles || []).map(async (p) => {
+        const { count: followersCount } = await supabase
+          .from('follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('following_id', p.user_id);
+
+        const { count: followingCount } = await supabase
+          .from('follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('follower_id', p.user_id);
+
+        return profileToSocialUser(
+          p,
+          followingIds.includes(p.user_id),
+          followersCount || 0,
+          followingCount || 0
+        );
+      }));
+
+      setUsers(socialUsers);
+    } catch (error) {
+      console.error('Error fetching social data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
-    localStorage.setItem('following', JSON.stringify(following));
-  }, [following]);
+    fetchSocialData();
+  }, [fetchSocialData]);
 
-  useEffect(() => {
-    localStorage.setItem('followers', JSON.stringify(followers));
-  }, [followers]);
+  const followUser = useCallback(async (targetUserId: string) => {
+    if (!user) return;
 
-  useEffect(() => {
-    localStorage.setItem('comments', JSON.stringify(comments));
-  }, [comments]);
+    const { error } = await supabase
+      .from('follows')
+      .insert({
+        follower_id: user.id,
+        following_id: targetUserId,
+      });
 
-  useEffect(() => {
-    localStorage.setItem('likedTrips', JSON.stringify(likedTrips));
-  }, [likedTrips]);
+    if (error) {
+      if (error.code !== '23505') { // Ignore duplicate key errors
+        toast({
+          title: 'Error',
+          description: 'Failed to follow user',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
 
-  const followUser = useCallback((userId: string) => {
-    setFollowing(prev => prev.includes(userId) ? prev : [...prev, userId]);
-  }, []);
+    setFollowing(prev => [...prev, targetUserId]);
+    setUsers(prev => prev.map(u => 
+      u.userId === targetUserId 
+        ? { ...u, isFollowing: true, followersCount: u.followersCount + 1 }
+        : u
+    ));
+  }, [user, toast]);
 
-  const unfollowUser = useCallback((userId: string) => {
-    setFollowing(prev => prev.filter(id => id !== userId));
-  }, []);
+  const unfollowUser = useCallback(async (targetUserId: string) => {
+    if (!user) return;
 
-  const isFollowing = useCallback((userId: string) => {
+    const { error } = await supabase
+      .from('follows')
+      .delete()
+      .eq('follower_id', user.id)
+      .eq('following_id', targetUserId);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to unfollow user',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setFollowing(prev => prev.filter(id => id !== targetUserId));
+    setUsers(prev => prev.map(u => 
+      u.userId === targetUserId 
+        ? { ...u, isFollowing: false, followersCount: Math.max(0, u.followersCount - 1) }
+        : u
+    ));
+  }, [user, toast]);
+
+  const isFollowingUser = useCallback((userId: string) => {
     return following.includes(userId);
   }, [following]);
 
-  const addComment = useCallback((tripId: string, content: string) => {
-    const newComment: Comment = {
-      id: `c-${Date.now()}`,
-      tripId,
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userAvatar: currentUser.avatar,
-      content,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      isLiked: false,
-    };
-    setComments(prev => [...prev, newComment]);
-  }, []);
+  const addComment = useCallback(async (tripId: string, content: string) => {
+    if (!user) return;
 
-  const deleteComment = useCallback((commentId: string) => {
-    setComments(prev => prev.filter(c => c.id !== commentId));
-  }, []);
+    const { error } = await supabase
+      .from('comments')
+      .insert({
+        trip_id: tripId,
+        user_id: user.id,
+        content,
+      });
 
-  const likeComment = useCallback((commentId: string) => {
-    setComments(prev => prev.map(c => 
-      c.id === commentId 
-        ? { ...c, isLiked: !c.isLiked, likes: c.isLiked ? c.likes - 1 : c.likes + 1 }
-        : c
-    ));
-  }, []);
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add comment',
+        variant: 'destructive',
+      });
+    }
+  }, [user, toast]);
 
-  const likeTrip = useCallback((tripId: string) => {
-    setLikedTrips(prev => prev.includes(tripId) ? prev : [...prev, tripId]);
-  }, []);
+  const deleteComment = useCallback(async (commentId: string) => {
+    if (!user) return;
 
-  const unlikeTrip = useCallback((tripId: string) => {
-    setLikedTrips(prev => prev.filter(id => id !== tripId));
-  }, []);
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete comment',
+        variant: 'destructive',
+      });
+    }
+  }, [user, toast]);
+
+  const likeComment = useCallback(async (commentId: string) => {
+    if (!user) return;
+
+    const isLiked = likedComments.has(commentId);
+
+    if (isLiked) {
+      await supabase
+        .from('comment_likes')
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('user_id', user.id);
+
+      setLikedComments(prev => {
+        const next = new Set(prev);
+        next.delete(commentId);
+        return next;
+      });
+    } else {
+      await supabase
+        .from('comment_likes')
+        .insert({
+          comment_id: commentId,
+          user_id: user.id,
+        });
+
+      setLikedComments(prev => new Set([...prev, commentId]));
+    }
+  }, [user, likedComments]);
+
+  const likeTrip = useCallback(async (tripId: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('trip_likes')
+      .insert({
+        trip_id: tripId,
+        user_id: user.id,
+      });
+
+    if (error && error.code !== '23505') {
+      toast({
+        title: 'Error',
+        description: 'Failed to like trip',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLikedTrips(prev => new Set([...prev, tripId]));
+  }, [user, toast]);
+
+  const unlikeTrip = useCallback(async (tripId: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('trip_likes')
+      .delete()
+      .eq('trip_id', tripId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to unlike trip',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLikedTrips(prev => {
+      const next = new Set(prev);
+      next.delete(tripId);
+      return next;
+    });
+  }, [user, toast]);
 
   const isTripLiked = useCallback((tripId: string) => {
-    return likedTrips.includes(tripId);
+    return likedTrips.has(tripId);
   }, [likedTrips]);
 
-  const getCommentsForTrip = useCallback((tripId: string) => {
-    return comments.filter(c => c.tripId === tripId).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, [comments]);
+  const getCommentsForTrip = useCallback(async (tripId: string): Promise<Comment[]> => {
+    const { data: comments, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('trip_id', tripId)
+      .order('created_at', { ascending: false });
 
-  const getUserById = useCallback((userId: string) => {
-    if (userId === currentUser.id) {
-      return {
-        ...currentUser,
-        isFollowing: false,
-        followersCount: followers.length,
-        followingCount: following.length,
-      };
+    if (error) {
+      console.error('Error fetching comments:', error);
+      return [];
     }
-    return users.find(u => u.id === userId);
-  }, [users, followers.length, following.length]);
+
+    // Fetch profiles for comment authors
+    const userIds = [...new Set((comments || []).map(c => c.user_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, display_name, avatar_url')
+      .in('user_id', userIds);
+
+    const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+
+    return (comments || []).map(c => {
+      const profileData = profileMap.get(c.user_id);
+      return {
+        id: c.id,
+        tripId: c.trip_id,
+        userId: c.user_id,
+        userName: profileData?.display_name || 'Unknown User',
+        userAvatar: profileData?.avatar_url || '/placeholder.svg',
+        content: c.content,
+        createdAt: c.created_at,
+        likes: c.likes_count || 0,
+        isLiked: likedComments.has(c.id),
+      };
+    });
+  }, [likedComments]);
+
+  const getUserById = useCallback(async (userId: string): Promise<SocialUser | undefined> => {
+    // Check if it's the current user
+    if (user && userId === user.id && profile) {
+      const { count: followersCount } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', user.id);
+
+      const { count: followingCount } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', user.id);
+
+      return profileToSocialUser(profile, false, followersCount || 0, followingCount || 0);
+    }
+
+    // Check cached users first
+    const cachedUser = users.find(u => u.userId === userId);
+    if (cachedUser) return cachedUser;
+
+    // Fetch from database
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!profileData) return undefined;
+
+    const { count: followersCount } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('following_id', userId);
+
+    const { count: followingCount } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('follower_id', userId);
+
+    return profileToSocialUser(
+      profileData,
+      following.includes(userId),
+      followersCount || 0,
+      followingCount || 0
+    );
+  }, [user, profile, users, following]);
 
   const getFriends = useCallback(() => {
-    return users.filter(u => following.includes(u.id));
+    return users.filter(u => following.includes(u.userId));
   }, [users, following]);
+
+  const refreshSocialData = useCallback(async () => {
+    await fetchSocialData();
+  }, [fetchSocialData]);
 
   return (
     <SocialContext.Provider value={{
       following,
       followers,
       users,
-      comments,
-      likedTrips,
+      loading,
       followUser,
       unfollowUser,
-      isFollowing,
+      isFollowing: isFollowingUser,
       addComment,
       deleteComment,
       likeComment,
@@ -262,6 +468,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       getCommentsForTrip,
       getUserById,
       getFriends,
+      refreshSocialData,
     }}>
       {children}
     </SocialContext.Provider>

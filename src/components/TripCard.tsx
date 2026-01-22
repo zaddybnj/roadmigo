@@ -1,4 +1,4 @@
-import { Trip } from '@/types';
+import { Trip } from '@/context/TripContext';
 import { Heart, MessageCircle, MapPin, Lock, Users, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -10,22 +10,22 @@ interface TripCardProps {
 }
 
 export const TripCard = ({ trip }: TripCardProps) => {
-  const { isTripLiked, likeTrip, unlikeTrip, getCommentsForTrip } = useSocial();
+  const { isTripLiked, likeTrip, unlikeTrip } = useSocial();
   const isLiked = isTripLiked(trip.id);
-  const comments = getCommentsForTrip(trip.id);
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (isLiked) {
-      unlikeTrip(trip.id);
+      await unlikeTrip(trip.id);
     } else {
-      likeTrip(trip.id);
+      await likeTrip(trip.id);
     }
   };
 
-  const formatDate = (start: string, end: string) => {
+  const formatDate = (start: string, end: string | null) => {
     const startDate = new Date(start);
+    if (!end) return startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const endDate = new Date(end);
     return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   };
@@ -84,11 +84,15 @@ export const TripCard = ({ trip }: TripCardProps) => {
       <div className="p-4">
         {/* User Info */}
         <Link 
-          to={trip.userId === '1' ? '/profile' : `/user/${trip.userId}`}
+          to={`/user/${trip.userId}`}
           className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
-            <span className="text-sm">👤</span>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center overflow-hidden">
+            {trip.userAvatar && trip.userAvatar !== '/placeholder.svg' ? (
+              <img src={trip.userAvatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-sm">👤</span>
+            )}
           </div>
           <div>
             <p className="text-sm font-medium">{trip.userName}</p>
@@ -97,7 +101,9 @@ export const TripCard = ({ trip }: TripCardProps) => {
         </Link>
 
         {/* Description */}
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{trip.description}</p>
+        {trip.description && (
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{trip.description}</p>
+        )}
 
         {/* Stats Row */}
         <div className="flex items-center gap-4 mb-4 text-sm">
@@ -130,13 +136,13 @@ export const TripCard = ({ trip }: TripCardProps) => {
               />
             </motion.div>
             <span className={isLiked ? 'text-primary font-medium' : 'text-muted-foreground'}>
-              {trip.likes + (isLiked ? 1 : 0)}
+              {trip.likes + (isLiked && !trip.isLiked ? 1 : 0)}
             </span>
           </button>
 
           <Link to={`/trip/${trip.id}`} className="flex items-center gap-2 text-sm text-muted-foreground">
             <MessageCircle className="w-5 h-5" />
-            <span>{comments.length || trip.comments}</span>
+            <span>{trip.comments}</span>
           </Link>
 
           <ShareMenu trip={trip} />

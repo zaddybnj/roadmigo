@@ -16,13 +16,11 @@ const TripDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { completedTrips } = useTrip();
-  const { isTripLiked, likeTrip, unlikeTrip, getCommentsForTrip, getUserById } = useSocial();
+  const { isTripLiked, likeTrip, unlikeTrip } = useSocial();
   const [showComments, setShowComments] = useState(false);
 
   const trip = completedTrips.find(t => t.id === id);
   const isLiked = id ? isTripLiked(id) : false;
-  const comments = id ? getCommentsForTrip(id) : [];
-  const tripUser = trip ? getUserById(trip.userId) : undefined;
 
   if (!trip) {
     return (
@@ -254,7 +252,7 @@ const TripDetailPage = () => {
             className={`flex items-center gap-2 text-sm ${showComments ? 'text-primary' : 'text-muted-foreground'}`}
           >
             <MessageCircle className={`w-6 h-6 ${showComments ? 'fill-primary/20' : ''}`} />
-            <span>{comments.length}</span>
+            <span>{trip.comments}</span>
           </button>
 
           <ShareMenu trip={trip} />

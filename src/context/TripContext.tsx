@@ -1,49 +1,193 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { ActiveTrip, Trip, Waypoint } from '@/types';
-import { trips as mockTrips } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { Tables } from '@/integrations/supabase/types';
+import { useToast } from '@/hooks/use-toast';
+
+type DbTrip = Tables<'trips'>;
+
+export interface ActiveTrip {
+  id: string;
+  title: string;
+  startDate: string;
+  startLocation: string;
+  currentMiles: number;
+  statesVisited: string[];
+  daysOnRoad: number;
+  waypoints: Waypoint[];
+  photos: string[];
+  notes: string;
+}
+
+export interface Waypoint {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  timestamp: string;
+}
+
+export interface Trip {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  title: string;
+  description: string | null;
+  notes: string | null;
+  startDate: string;
+  endDate: string | null;
+  distance: number;
+  states: string[];
+  nights: number;
+  photos: string[];
+  route: [number, number][];
+  likes: number;
+  comments: number;
+  privacy: 'public' | 'friends' | 'private';
+  isLiked: boolean;
+  status: 'active' | 'completed';
+}
 
 interface TripContextType {
   activeTrip: ActiveTrip | null;
   completedTrips: Trip[];
   isTracking: boolean;
-  startTrip: (title: string, startLocation: string) => void;
-  endTrip: (description: string, privacy: Trip['privacy']) => Trip;
-  updateMiles: (miles: number) => void;
-  addWaypoint: (waypoint: Omit<Waypoint, 'id' | 'timestamp'>) => void;
-  addPhoto: (photoUrl: string) => void;
-  updateNotes: (notes: string) => void;
-  addState: (state: string) => void;
+  loading: boolean;
+  startTrip: (title: string, startLocation: string) => Promise<void>;
+  endTrip: (description: string, privacy: Trip['privacy']) => Promise<Trip>;
+  updateMiles: (miles: number) => Promise<void>;
+  addPhoto: (photoUrl: string) => Promise<void>;
+  updateNotes: (notes: string) => Promise<void>;
+  addState: (state: string) => Promise<void>;
+  refreshTrips: () => Promise<void>;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
 
-export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(() => {
-    const saved = localStorage.getItem('activeTrip');
-    return saved ? JSON.parse(saved) : null;
-  });
+// Helper to convert DB trip to app Trip format
+const dbTripToTrip = (dbTrip: DbTrip, userName: string, userAvatar: string, isLiked: boolean = false): Trip => ({
+  id: dbTrip.id,
+  userId: dbTrip.user_id,
+  userName,
+  userAvatar,
+  title: dbTrip.title,
+  description: dbTrip.description,
+  notes: dbTrip.notes,
+  startDate: dbTrip.start_date,
+  endDate: dbTrip.end_date,
+  distance: dbTrip.distance || 0,
+  states: dbTrip.states || [],
+  nights: dbTrip.nights || 0,
+  photos: dbTrip.photos || [],
+  route: (dbTrip.route as [number, number][]) || [],
+  likes: dbTrip.likes_count || 0,
+  comments: dbTrip.comments_count || 0,
+  privacy: (dbTrip.privacy as Trip['privacy']) || 'public',
+  isLiked,
+  status: (dbTrip.status as Trip['status']) || 'completed',
+});
 
-  const [completedTrips, setCompletedTrips] = useState<Trip[]>(() => {
-    const saved = localStorage.getItem('completedTrips');
-    return saved ? JSON.parse(saved) : mockTrips;
-  });
+export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
+  const [completedTrips, setCompletedTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [likedTripIds, setLikedTripIds] = useState<Set<string>>(new Set());
 
   const isTracking = activeTrip !== null;
 
-  // Persist to localStorage
-  useEffect(() => {
-    if (activeTrip) {
-      localStorage.setItem('activeTrip', JSON.stringify(activeTrip));
-    } else {
-      localStorage.removeItem('activeTrip');
+  // Fetch trips from database
+  const fetchTrips = useCallback(async () => {
+    if (!user) {
+      setCompletedTrips([]);
+      setActiveTrip(null);
+      setLoading(false);
+      return;
     }
-  }, [activeTrip]);
 
+    try {
+      // Fetch all visible trips
+      const { data: trips, error } = await supabase
+        .from('trips')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch profiles for all trip users
+      const userIds = [...new Set((trips || []).map(t => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url')
+        .in('user_id', userIds);
+
+      const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+
+      // Fetch user's liked trips
+      const { data: likes } = await supabase
+        .from('trip_likes')
+        .select('trip_id')
+        .eq('user_id', user.id);
+
+      const likedIds = new Set((likes || []).map(l => l.trip_id));
+      setLikedTripIds(likedIds);
+
+      // Check for active trip
+      const activeDbTrip = trips?.find(t => t.status === 'active' && t.user_id === user.id);
+      
+      if (activeDbTrip) {
+        setActiveTrip({
+          id: activeDbTrip.id,
+          title: activeDbTrip.title,
+          startDate: activeDbTrip.start_date,
+          startLocation: '', // Not stored in DB currently
+          currentMiles: activeDbTrip.distance || 0,
+          statesVisited: activeDbTrip.states || [],
+          daysOnRoad: Math.max(1, Math.ceil(
+            (new Date().getTime() - new Date(activeDbTrip.start_date).getTime()) / (1000 * 60 * 60 * 24)
+          )),
+          waypoints: [],
+          photos: activeDbTrip.photos || [],
+          notes: activeDbTrip.notes || '',
+        });
+      } else {
+        setActiveTrip(null);
+      }
+
+      // Map completed trips
+      const completed = (trips || [])
+        .filter(t => t.status === 'completed')
+        .map(t => {
+          const profileData = profileMap.get(t.user_id);
+          return dbTripToTrip(
+            t,
+            profileData?.display_name || 'Unknown User',
+            profileData?.avatar_url || '/placeholder.svg',
+            likedIds.has(t.id)
+          );
+        });
+
+      setCompletedTrips(completed);
+    } catch (error) {
+      console.error('Error fetching trips:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load trips',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast]);
+
+  // Initial fetch
   useEffect(() => {
-    localStorage.setItem('completedTrips', JSON.stringify(completedTrips));
-  }, [completedTrips]);
+    fetchTrips();
+  }, [fetchTrips]);
 
-  // Auto-update days on road
+  // Auto-update days on road for active trip
   useEffect(() => {
     if (activeTrip) {
       const interval = setInterval(() => {
@@ -51,16 +195,37 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const now = new Date();
         const days = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
         setActiveTrip(prev => prev ? { ...prev, daysOnRoad: days } : null);
-      }, 60000); // Update every minute
+      }, 60000);
       return () => clearInterval(interval);
     }
   }, [activeTrip?.startDate]);
 
-  const startTrip = useCallback((title: string, startLocation: string) => {
-    const newTrip: ActiveTrip = {
-      id: `trip-${Date.now()}`,
+  const startTrip = useCallback(async (title: string, startLocation: string) => {
+    if (!user) throw new Error('Must be logged in to start a trip');
+
+    const { data, error } = await supabase
+      .from('trips')
+      .insert({
+        user_id: user.id,
+        title,
+        start_date: new Date().toISOString(),
+        status: 'active',
+        privacy: 'public',
+        distance: 0,
+        nights: 0,
+        states: [],
+        photos: [],
+        route: [],
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    setActiveTrip({
+      id: data.id,
       title,
-      startDate: new Date().toISOString(),
+      startDate: data.start_date,
       startLocation,
       currentMiles: 0,
       statesVisited: [],
@@ -68,86 +233,124 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       waypoints: [],
       photos: [],
       notes: '',
-    };
-    setActiveTrip(newTrip);
-  }, []);
+    });
+  }, [user]);
 
-  const endTrip = useCallback((description: string, privacy: Trip['privacy']) => {
-    if (!activeTrip) throw new Error('No active trip to end');
+  const endTrip = useCallback(async (description: string, privacy: Trip['privacy']) => {
+    if (!activeTrip || !user || !profile) throw new Error('No active trip to end');
 
-    const completedTrip: Trip = {
-      id: activeTrip.id,
-      userId: '1',
-      userName: 'Alex Rivera',
-      userAvatar: '/placeholder.svg',
-      title: activeTrip.title,
-      description,
-      notes: activeTrip.notes,
-      startDate: activeTrip.startDate,
-      endDate: new Date().toISOString(),
-      distance: activeTrip.currentMiles,
-      states: activeTrip.statesVisited,
-      nights: Math.max(0, activeTrip.daysOnRoad - 1),
-      photos: activeTrip.photos,
-      route: activeTrip.waypoints.map(w => [w.lng, w.lat] as [number, number]),
-      likes: 0,
-      comments: 0,
-      privacy,
-      isLiked: false,
-      status: 'completed',
-    };
+    const endDate = new Date().toISOString();
+    const nights = Math.max(0, activeTrip.daysOnRoad - 1);
+
+    const { data, error } = await supabase
+      .from('trips')
+      .update({
+        description,
+        privacy,
+        end_date: endDate,
+        status: 'completed',
+        distance: activeTrip.currentMiles,
+        nights,
+        states: activeTrip.statesVisited,
+        photos: activeTrip.photos,
+        notes: activeTrip.notes,
+        route: activeTrip.waypoints.map(w => [w.lng, w.lat]),
+      })
+      .eq('id', activeTrip.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    const completedTrip = dbTripToTrip(
+      data,
+      profile.display_name,
+      profile.avatar_url || '/placeholder.svg',
+      false
+    );
 
     setCompletedTrips(prev => [completedTrip, ...prev]);
     setActiveTrip(null);
+
+    // Update profile stats
+    await supabase
+      .from('profiles')
+      .update({
+        total_trips: (profile.total_trips || 0) + 1,
+        total_miles: (profile.total_miles || 0) + activeTrip.currentMiles,
+        nights_camped: (profile.nights_camped || 0) + nights,
+        states_visited: [...new Set([...(profile.states_visited || []), ...activeTrip.statesVisited])],
+      })
+      .eq('user_id', user.id);
+
     return completedTrip;
+  }, [activeTrip, user, profile]);
+
+  const updateMiles = useCallback(async (miles: number) => {
+    if (!activeTrip) return;
+
+    await supabase
+      .from('trips')
+      .update({ distance: miles })
+      .eq('id', activeTrip.id);
+
+    setActiveTrip(prev => prev ? { ...prev, currentMiles: miles } : null);
   }, [activeTrip]);
 
-  const updateMiles = useCallback((miles: number) => {
-    setActiveTrip(prev => prev ? { ...prev, currentMiles: miles } : null);
-  }, []);
+  const addPhoto = useCallback(async (photoUrl: string) => {
+    if (!activeTrip) return;
 
-  const addWaypoint = useCallback((waypoint: Omit<Waypoint, 'id' | 'timestamp'>) => {
-    const newWaypoint: Waypoint = {
-      ...waypoint,
-      id: `wp-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-    };
-    setActiveTrip(prev => prev ? {
-      ...prev,
-      waypoints: [...prev.waypoints, newWaypoint],
-    } : null);
-  }, []);
+    const newPhotos = [...activeTrip.photos, photoUrl];
 
-  const addPhoto = useCallback((photoUrl: string) => {
-    setActiveTrip(prev => prev ? {
-      ...prev,
-      photos: [...prev.photos, photoUrl],
-    } : null);
-  }, []);
+    await supabase
+      .from('trips')
+      .update({ photos: newPhotos })
+      .eq('id', activeTrip.id);
 
-  const updateNotes = useCallback((notes: string) => {
+    setActiveTrip(prev => prev ? { ...prev, photos: newPhotos } : null);
+  }, [activeTrip]);
+
+  const updateNotes = useCallback(async (notes: string) => {
+    if (!activeTrip) return;
+
+    await supabase
+      .from('trips')
+      .update({ notes })
+      .eq('id', activeTrip.id);
+
     setActiveTrip(prev => prev ? { ...prev, notes } : null);
-  }, []);
+  }, [activeTrip]);
 
-  const addState = useCallback((state: string) => {
-    setActiveTrip(prev => {
-      if (!prev || prev.statesVisited.includes(state)) return prev;
-      return { ...prev, statesVisited: [...prev.statesVisited, state] };
-    });
-  }, []);
+  const addState = useCallback(async (state: string) => {
+    if (!activeTrip || activeTrip.statesVisited.includes(state)) return;
+
+    const newStates = [...activeTrip.statesVisited, state];
+
+    await supabase
+      .from('trips')
+      .update({ states: newStates })
+      .eq('id', activeTrip.id);
+
+    setActiveTrip(prev => prev ? { ...prev, statesVisited: newStates } : null);
+  }, [activeTrip]);
+
+  const refreshTrips = useCallback(async () => {
+    await fetchTrips();
+  }, [fetchTrips]);
 
   return (
     <TripContext.Provider value={{
       activeTrip,
       completedTrips,
       isTracking,
+      loading,
       startTrip,
       endTrip,
       updateMiles,
-      addWaypoint,
       addPhoto,
       updateNotes,
       addState,
+      refreshTrips,
     }}>
       {children}
     </TripContext.Provider>

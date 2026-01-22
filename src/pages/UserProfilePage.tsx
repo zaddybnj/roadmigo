@@ -1,19 +1,40 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, MapPin, Route, Moon, Calendar, UserPlus, UserMinus, Lock, Users } from 'lucide-react';
-import { useSocial } from '@/context/SocialContext';
+import { ChevronLeft, MapPin, Route, Moon, Calendar, UserPlus, UserMinus, Lock, Users, Loader2 } from 'lucide-react';
+import { useSocial, SocialUser } from '@/context/SocialContext';
 import { useTrip } from '@/context/TripContext';
 import { TripCard } from '@/components/TripCard';
 import { StatCard } from '@/components/StatCard';
+import { useState, useEffect } from 'react';
 
 const UserProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getUserById, isFollowing, followUser, unfollowUser, following } = useSocial();
+  const { getUserById, isFollowing, followUser, unfollowUser } = useSocial();
   const { completedTrips } = useTrip();
+  const [user, setUser] = useState<SocialUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const user = getUserById(id || '');
   const isUserFollowing = id ? isFollowing(id) : false;
+
+  useEffect(() => {
+    const loadUser = async () => {
+      if (!id) return;
+      setLoading(true);
+      const userData = await getUserById(id);
+      setUser(userData || null);
+      setLoading(false);
+    };
+    loadUser();
+  }, [id, getUserById]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -33,17 +54,16 @@ const UserProfilePage = () => {
 
   // Get user's public trips
   const userTrips = completedTrips.filter(t => 
-    t.userId === id && 
+    t.userId === user.userId && 
     (t.privacy === 'public' || (t.privacy === 'friends' && isUserFollowing))
   );
 
-  const handleFollowToggle = () => {
-    if (id) {
-      if (isUserFollowing) {
-        unfollowUser(id);
-      } else {
-        followUser(id);
-      }
+  const handleFollowToggle = async () => {
+    if (!user) return;
+    if (isUserFollowing) {
+      await unfollowUser(user.userId);
+    } else {
+      await followUser(user.userId);
     }
   };
 
@@ -63,9 +83,13 @@ const UserProfilePage = () => {
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4"
+            className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 overflow-hidden"
           >
-            <span className="text-4xl">👤</span>
+            {user.avatar && user.avatar !== '/placeholder.svg' ? (
+              <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-4xl">👤</span>
+            )}
           </motion.div>
 
           <h1 className="font-display text-xl font-bold">{user.name}</h1>
