@@ -3,16 +3,20 @@ import { StatCard } from '@/components/StatCard';
 import { TrophyCard } from '@/components/TrophyCard';
 import { StreakCard } from '@/components/StreakCard';
 import { ShareableAchievement } from '@/components/ShareableAchievement';
+import { PremiumBadge } from '@/components/PremiumBadge';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { currentUser, visitedStates, trophies, streaks, gamificationData, achievements } from '@/data/mockData';
 import { useSocial } from '@/context/SocialContext';
+import { useSubscription } from '@/context/SubscriptionContext';
 import { Trophy } from '@/types';
 import { motion } from 'framer-motion';
-import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, UserCheck, Trophy as TrophyIcon, Award, Flame, Star, Settings } from 'lucide-react';
+import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, UserCheck, Trophy as TrophyIcon, Award, Flame, Star, Settings, Crown, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const ProfilePage = () => {
   const { following, followers } = useSocial();
+  const { isPremium, tier, subscription } = useSubscription();
   const [shareTrophy, setShareTrophy] = useState<Trophy | null>(null);
   const [privacySetting, setPrivacySetting] = useState<'public' | 'friends' | 'private'>('friends');
   
@@ -59,8 +63,17 @@ const ProfilePage = () => {
             <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full gradient-sunset flex items-center justify-center border-3 border-background glow-primary">
               <span className="text-sm font-bold">{gamificationData.level}</span>
             </div>
+            {/* Premium Crown */}
+            {isPremium && (
+              <div className="absolute -top-1 -left-1 w-8 h-8 rounded-full gradient-premium flex items-center justify-center border-2 border-background glow-premium">
+                <Crown className="w-4 h-4 text-white" />
+              </div>
+            )}
           </div>
-          <h2 className="font-display text-xl font-bold">{currentUser.name}</h2>
+          <div className="flex items-center justify-center gap-2">
+            <h2 className="font-display text-xl font-bold">{currentUser.name}</h2>
+            {isPremium && <PremiumBadge size="sm" />}
+          </div>
           <p className="text-muted-foreground text-sm">{currentUser.username}</p>
           
           {/* Level Title */}
@@ -214,6 +227,42 @@ const ProfilePage = () => {
           </div>
         </motion.div>
 
+        {/* Subscription Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+          className="mb-6"
+        >
+          {isPremium ? (
+            <div className="bg-gradient-to-br from-[hsl(265_85%_60%)]/20 to-[hsl(280_80%_55%)]/10 rounded-xl p-4 border border-[hsl(265_85%_60%)]/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full gradient-premium flex items-center justify-center">
+                    <Crown className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-display font-semibold">Nomad Pro</p>
+                    <p className="text-xs text-muted-foreground">Active subscription</p>
+                  </div>
+                </div>
+                <Link 
+                  to="/pricing"
+                  className="text-sm text-[hsl(265_85%_60%)] font-medium"
+                >
+                  Manage
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <UpgradePrompt 
+              variant="banner" 
+              title="Go Pro"
+              description="Unlock analytics, unlimited trips & more"
+            />
+          )}
+        </motion.div>
+
         {/* Settings Menu */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -224,6 +273,26 @@ const ProfilePage = () => {
           <div className="p-4 border-b border-border">
             <h3 className="font-display font-semibold">Settings</h3>
           </div>
+
+          {/* Subscription Link */}
+          <Link
+            to="/pricing"
+            className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors border-b border-border"
+          >
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isPremium ? 'gradient-premium' : 'bg-muted'}`}>
+              <Crown className={`w-5 h-5 ${isPremium ? 'text-white' : 'text-muted-foreground'}`} />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-medium text-sm">Subscription</p>
+              <p className="text-xs text-muted-foreground">{isPremium ? 'Nomad Pro' : 'Free Plan'}</p>
+            </div>
+            {!isPremium && (
+              <span className="px-2 py-1 text-xs font-medium rounded-full gradient-premium text-white">
+                Upgrade
+              </span>
+            )}
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </Link>
           
           <Link
             to="/friends"

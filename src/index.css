@@ -60,6 +60,11 @@
     --map-visited: 152 45% 35%;
     --map-unvisited: 220 15% 25%;
     
+    /* Premium tier colors */
+    --premium: 265 85% 60%;
+    --premium-foreground: 0 0% 100%;
+    --premium-glow: 280 80% 55%;
+    
     --radius: 1rem;
 
     --sidebar-background: 220 20% 10%;
@@ -164,6 +169,14 @@
 
   .gradient-rare {
     background: linear-gradient(135deg, hsl(200 80% 50%) 0%, hsl(220 70% 45%) 100%);
+  }
+
+  .gradient-premium {
+    background: linear-gradient(135deg, hsl(265 85% 60%) 0%, hsl(280 80% 55%) 50%, hsl(300 70% 50%) 100%);
+  }
+
+  .glow-premium {
+    box-shadow: 0 0 40px -5px hsl(265 85% 60% / 0.4);
   }
 
   .gradient-streak {
