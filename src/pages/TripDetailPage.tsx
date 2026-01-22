@@ -1,20 +1,26 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ChevronLeft, MapPin, Calendar, Moon, Heart, 
-  MessageCircle, Share2, FileText, Camera, Mountain
+  MessageCircle, Share2, FileText, Camera, Mountain, Lock, Users, Globe
 } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
+import { useSocial } from '@/context/SocialContext';
 import { USMap } from '@/components/USMap';
+import { CommentSection } from '@/components/CommentSection';
 import { useState } from 'react';
 
 const TripDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { completedTrips } = useTrip();
-  const [isLiked, setIsLiked] = useState(false);
+  const { isTripLiked, likeTrip, unlikeTrip, getCommentsForTrip, getUserById } = useSocial();
+  const [showComments, setShowComments] = useState(false);
 
   const trip = completedTrips.find(t => t.id === id);
+  const isLiked = id ? isTripLiked(id) : false;
+  const comments = id ? getCommentsForTrip(id) : [];
+  const tripUser = trip ? getUserById(trip.userId) : undefined;
 
   if (!trip) {
     return (
@@ -32,10 +38,28 @@ const TripDetailPage = () => {
     );
   }
 
+  const handleLikeToggle = () => {
+    if (id) {
+      if (isLiked) {
+        unlikeTrip(id);
+      } else {
+        likeTrip(id);
+      }
+    }
+  };
+
   const startDate = new Date(trip.startDate);
   const endDate = new Date(trip.endDate);
   const formatDateRange = () => {
     return `${startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+  };
+
+  const getPrivacyIcon = () => {
+    switch (trip.privacy) {
+      case 'public': return <Globe className="w-3.5 h-3.5" />;
+      case 'friends': return <Users className="w-3.5 h-3.5" />;
+      case 'private': return <Lock className="w-3.5 h-3.5" />;
+    }
   };
 
   return (
@@ -61,6 +85,12 @@ const TripDetailPage = () => {
           <ChevronLeft className="w-5 h-5" />
         </button>
 
+        {/* Privacy Badge */}
+        <div className="absolute top-4 right-4 safe-top px-2.5 py-1 rounded-full bg-background/50 backdrop-blur flex items-center gap-1 text-xs text-foreground">
+          {getPrivacyIcon()}
+          <span className="capitalize">{trip.privacy}</span>
+        </div>
+
         {/* Title Overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -81,10 +111,30 @@ const TripDetailPage = () => {
       </div>
 
       <main className="px-4 -mt-2 space-y-4">
+        {/* User Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Link 
+            to={trip.userId === '1' ? '/profile' : `/user/${trip.userId}`}
+            className="flex items-center gap-3 p-3 bg-card rounded-xl card-elevated hover:bg-muted/50 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
+              <span className="text-lg">👤</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-sm">{trip.userName}</p>
+              <p className="text-xs text-muted-foreground">{formatDateRange()}</p>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Stats Row */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
           className="bg-card rounded-xl p-4 card-elevated"
         >
           <div className="grid grid-cols-3 gap-4 text-center">
@@ -110,17 +160,6 @@ const TripDetailPage = () => {
               <p className="text-xs text-muted-foreground">nights</p>
             </div>
           </div>
-        </motion.div>
-
-        {/* Date */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="flex items-center gap-2 text-sm text-muted-foreground"
-        >
-          <Calendar className="w-4 h-4" />
-          <span>{formatDateRange()}</span>
         </motion.div>
 
         {/* Description */}
@@ -206,7 +245,7 @@ const TripDetailPage = () => {
           className="flex items-center justify-between pt-4 border-t border-border"
         >
           <button
-            onClick={() => setIsLiked(!isLiked)}
+            onClick={handleLikeToggle}
             className="flex items-center gap-2 text-sm"
           >
             <motion.div whileTap={{ scale: 1.3 }} transition={{ type: 'spring', stiffness: 400 }}>
@@ -217,9 +256,12 @@ const TripDetailPage = () => {
             </span>
           </button>
 
-          <button className="flex items-center gap-2 text-sm text-muted-foreground">
-            <MessageCircle className="w-6 h-6" />
-            <span>{trip.comments}</span>
+          <button 
+            onClick={() => setShowComments(!showComments)}
+            className={`flex items-center gap-2 text-sm ${showComments ? 'text-primary' : 'text-muted-foreground'}`}
+          >
+            <MessageCircle className={`w-6 h-6 ${showComments ? 'fill-primary/20' : ''}`} />
+            <span>{comments.length}</span>
           </button>
 
           <button className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -227,6 +269,22 @@ const TripDetailPage = () => {
             <span>Share</span>
           </button>
         </motion.div>
+
+        {/* Comments Section */}
+        {showComments && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-card rounded-xl p-4 card-elevated"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <MessageCircle className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold">Comments</h3>
+            </div>
+            <CommentSection tripId={trip.id} />
+          </motion.div>
+        )}
       </main>
     </div>
   );

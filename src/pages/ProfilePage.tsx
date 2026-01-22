@@ -4,14 +4,17 @@ import { TrophyCard } from '@/components/TrophyCard';
 import { StreakCard } from '@/components/StreakCard';
 import { ShareableAchievement } from '@/components/ShareableAchievement';
 import { currentUser, visitedStates, trophies, streaks, gamificationData, achievements } from '@/data/mockData';
+import { useSocial } from '@/context/SocialContext';
 import { Trophy } from '@/types';
 import { motion } from 'framer-motion';
-import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, UserCheck, Trophy as TrophyIcon, Award, Flame, Star } from 'lucide-react';
+import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, UserCheck, Trophy as TrophyIcon, Award, Flame, Star, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const ProfilePage = () => {
+  const { following, followers } = useSocial();
   const [shareTrophy, setShareTrophy] = useState<Trophy | null>(null);
+  const [privacySetting, setPrivacySetting] = useState<'public' | 'friends' | 'private'>('friends');
   
   const unlockedBadges = achievements.reduce(
     (acc, cat) => acc + cat.badges.filter((b) => b.unlockedAt).length,
@@ -26,6 +29,15 @@ const ProfilePage = () => {
     if (level < 30) return 'Nomad';
     if (level < 50) return 'Legend';
     return 'Road Master';
+  };
+
+  const getPrivacyIcon = (setting: string) => {
+    switch (setting) {
+      case 'public': return <Globe className="w-4 h-4" />;
+      case 'friends': return <Users className="w-4 h-4" />;
+      case 'private': return <Lock className="w-4 h-4" />;
+      default: return <Globe className="w-4 h-4" />;
+    }
   };
 
   return (
@@ -56,8 +68,20 @@ const ProfilePage = () => {
             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
             <span className="text-sm font-medium text-primary">{getLevelTitle(gamificationData.level)}</span>
           </div>
+
+          {/* Follow Stats */}
+          <div className="flex items-center justify-center gap-6 mt-3">
+            <Link to="/friends" className="text-center hover:opacity-80 transition-opacity">
+              <p className="font-display font-bold">{followers.length}</p>
+              <p className="text-xs text-muted-foreground">Followers</p>
+            </Link>
+            <Link to="/friends" className="text-center hover:opacity-80 transition-opacity">
+              <p className="font-display font-bold">{following.length}</p>
+              <p className="text-xs text-muted-foreground">Following</p>
+            </Link>
+          </div>
           
-          <p className="text-sm text-muted-foreground mt-2 max-w-[280px] mx-auto">
+          <p className="text-sm text-muted-foreground mt-3 max-w-[280px] mx-auto">
             {currentUser.bio}
           </p>
           <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
@@ -198,26 +222,69 @@ const ProfilePage = () => {
             <h3 className="font-display font-semibold">Settings</h3>
           </div>
           
-          {[
-            { icon: Users, label: 'Friends', value: '156' },
-            { icon: Lock, label: 'Privacy', value: 'Friends Only' },
-            { icon: Camera, label: 'Photos', value: currentUser.stats.photosShared.toString() },
-            { icon: UserCheck, label: 'Following', value: '89' },
-          ].map((item) => (
-            <button
-              key={item.label}
-              className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors border-b border-border last:border-0"
-            >
+          <Link
+            to="/friends"
+            className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors border-b border-border"
+          >
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+              <Users className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-medium text-sm">Friends</p>
+            </div>
+            <span className="text-sm text-muted-foreground">{following.length + followers.length}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </Link>
+
+          {/* Privacy Setting */}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center gap-4 mb-3">
               <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                <item.icon className="w-5 h-5 text-muted-foreground" />
+                <Lock className="w-5 h-5 text-muted-foreground" />
               </div>
-              <div className="flex-1 text-left">
-                <p className="font-medium text-sm">{item.label}</p>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Default Trip Privacy</p>
+                <p className="text-xs text-muted-foreground">Who can see your new trips</p>
               </div>
-              <span className="text-sm text-muted-foreground">{item.value}</span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-          ))}
+            </div>
+            <div className="flex gap-2">
+              {(['public', 'friends', 'private'] as const).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setPrivacySetting(option)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                    privacySetting === option
+                      ? 'gradient-sunset text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {getPrivacyIcon(option)}
+                  <span className="capitalize">{option}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors border-b border-border">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+              <Camera className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-medium text-sm">Photos</p>
+            </div>
+            <span className="text-sm text-muted-foreground">{currentUser.stats.photosShared}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          <button className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+              <Settings className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-medium text-sm">App Settings</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
         </motion.div>
 
         {/* Sign Out */}

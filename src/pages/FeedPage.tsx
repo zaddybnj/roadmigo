@@ -1,15 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { TripCard } from '@/components/TripCard';
+import { FeedFilters, FeedFilter } from '@/components/FeedFilters';
 import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
+import { useSocial } from '@/context/SocialContext';
 import { ActiveTripBanner } from '@/components/ActiveTripBanner';
 import { StartTripModal } from '@/components/StartTripModal';
+import { Link } from 'react-router-dom';
 
 const FeedPage = () => {
   const { completedTrips, isTracking } = useTrip();
+  const { following, isTripLiked } = useSocial();
   const [showStartModal, setShowStartModal] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FeedFilter>('all');
 
   // Calculate user stats from completed trips
   const userTrips = completedTrips.filter(t => t.userId === '1');
@@ -17,6 +22,27 @@ const FeedPage = () => {
   const totalTrips = userTrips.length;
   const allStates = new Set(userTrips.flatMap(t => t.states));
   const totalNights = userTrips.reduce((acc, t) => acc + t.nights, 0);
+
+  // Filter trips based on active filter and privacy
+  const filteredTrips = useMemo(() => {
+    let trips = completedTrips.filter(trip => {
+      // Filter by privacy
+      if (trip.privacy === 'private' && trip.userId !== '1') return false;
+      if (trip.privacy === 'friends' && trip.userId !== '1' && !following.includes(trip.userId)) return false;
+      return true;
+    });
+
+    switch (activeFilter) {
+      case 'following':
+        return trips.filter(t => following.includes(t.userId) || t.userId === '1');
+      case 'trending':
+        return [...trips].sort((a, b) => b.likes - a.likes);
+      case 'featured':
+        return trips.filter(t => t.likes > 100);
+      default:
+        return trips;
+    }
+  }, [completedTrips, activeFilter, following]);
 
   return (
     <div className="min-h-screen pb-20">
@@ -31,7 +57,7 @@ const FeedPage = () => {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-primary/20 to-secondary/20 rounded-xl p-4 mb-6 border border-primary/20"
+            className="bg-gradient-to-r from-primary/20 to-secondary/20 rounded-xl p-4 mb-4 border border-primary/20"
           >
             <p className="text-sm text-muted-foreground mb-1">Your journey so far</p>
             <div className="flex items-baseline gap-2">
@@ -45,24 +71,82 @@ const FeedPage = () => {
             </div>
           </motion.div>
 
+          {/* Friends Suggestion */}
+          {following.length < 3 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-4"
+            >
+              <Link 
+                to="/friends"
+                className="flex items-center gap-3 p-3 bg-card rounded-xl card-elevated hover:bg-muted/50 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full gradient-sunset flex items-center justify-center">
+                  <Users className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">Find fellow RVers</p>
+                  <p className="text-xs text-muted-foreground">Connect with travelers like you</p>
+                </div>
+              </Link>
+            </motion.div>
+          )}
+
+          {/* Feed Filters */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-4"
+          >
+            <FeedFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+          </motion.div>
+
           {/* Feed Title */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-semibold text-lg">Recent Adventures</h2>
-            <button className="text-sm text-primary font-medium">Filter</button>
+            <h2 className="font-display font-semibold text-lg">
+              {activeFilter === 'all' ? 'Recent Adventures' : 
+               activeFilter === 'following' ? 'From People You Follow' :
+               activeFilter === 'trending' ? 'Trending Now' : 'Featured Trips'}
+            </h2>
           </div>
 
           {/* Trip Cards */}
           <div className="space-y-4">
-            {completedTrips.map((trip, index) => (
+            {filteredTrips.length > 0 ? (
+              filteredTrips.map((trip, index) => (
+                <motion.div
+                  key={trip.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <TripCard trip={trip} />
+                </motion.div>
+              ))
+            ) : (
               <motion.div
-                key={trip.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.15 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-card rounded-xl p-8 text-center card-elevated"
               >
-                <TripCard trip={trip} />
+                <p className="text-muted-foreground">
+                  {activeFilter === 'following' 
+                    ? "No trips from people you follow yet. Discover more RVers!"
+                    : "No trips to show"}
+                </p>
+                {activeFilter === 'following' && (
+                  <Link 
+                    to="/friends" 
+                    className="inline-block mt-3 px-4 py-2 gradient-sunset text-primary-foreground text-sm font-medium rounded-lg"
+                  >
+                    Find RVers
+                  </Link>
+                )}
               </motion.div>
-            ))}
+            )}
           </div>
         </div>
       </main>
