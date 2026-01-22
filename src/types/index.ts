@@ -110,3 +110,38 @@ export interface GamificationData {
   xp: number;
   xpToNextLevel: number;
 }
+
+// Social types
+export interface Comment {
+  id: string;
+  tripId: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  content: string;
+  createdAt: string;
+  likes: number;
+  isLiked: boolean;
+}
+
+export interface SocialUser {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  bio: string;
+  stats: UserStats;
+  isFollowing: boolean;
+  followersCount: number;
+  followingCount: number;
+}
+
+export interface FeedItem {
+  id: string;
+  type: 'trip' | 'achievement' | 'follow';
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  content: Trip | Badge | { followedUser: SocialUser };
+  createdAt: string;
+}

@@ -1,26 +1,40 @@
 import { Trip } from '@/types';
-import { Heart, MessageCircle, Share2, MapPin } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MapPin, Lock, Users, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useSocial } from '@/context/SocialContext';
 
 interface TripCardProps {
   trip: Trip;
 }
 
 export const TripCard = ({ trip }: TripCardProps) => {
-  const [isLiked, setIsLiked] = useState(trip.isLiked);
-  const [likes, setLikes] = useState(trip.likes);
+  const { isTripLiked, likeTrip, unlikeTrip, getCommentsForTrip } = useSocial();
+  const isLiked = isTripLiked(trip.id);
+  const comments = getCommentsForTrip(trip.id);
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(isLiked ? likes - 1 : likes + 1);
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isLiked) {
+      unlikeTrip(trip.id);
+    } else {
+      likeTrip(trip.id);
+    }
   };
 
   const formatDate = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
     return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  };
+
+  const getPrivacyIcon = () => {
+    switch (trip.privacy) {
+      case 'public': return <Globe className="w-3 h-3" />;
+      case 'friends': return <Users className="w-3 h-3" />;
+      case 'private': return <Lock className="w-3 h-3" />;
+    }
   };
 
   return (
@@ -42,6 +56,13 @@ export const TripCard = ({ trip }: TripCardProps) => {
             <div className="w-full h-full gradient-forest" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+          
+          {/* Privacy Badge */}
+          <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-background/50 backdrop-blur flex items-center gap-1 text-[10px] text-foreground">
+            {getPrivacyIcon()}
+            <span className="capitalize">{trip.privacy}</span>
+          </div>
+
           <div className="absolute bottom-0 left-0 right-0 p-4">
             <div className="flex items-center gap-2 mb-2">
               {trip.states.map((state) => (
@@ -61,15 +82,18 @@ export const TripCard = ({ trip }: TripCardProps) => {
       {/* Trip Info */}
       <div className="p-4">
         {/* User Info */}
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+        <Link 
+          to={trip.userId === '1' ? '/profile' : `/user/${trip.userId}`}
+          className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity"
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
             <span className="text-sm">👤</span>
           </div>
           <div>
             <p className="text-sm font-medium">{trip.userName}</p>
             <p className="text-xs text-muted-foreground">{formatDate(trip.startDate, trip.endDate)}</p>
           </div>
-        </div>
+        </Link>
 
         {/* Description */}
         <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{trip.description}</p>
@@ -105,14 +129,14 @@ export const TripCard = ({ trip }: TripCardProps) => {
               />
             </motion.div>
             <span className={isLiked ? 'text-primary font-medium' : 'text-muted-foreground'}>
-              {likes}
+              {trip.likes + (isLiked ? 1 : 0)}
             </span>
           </button>
 
-          <button className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link to={`/trip/${trip.id}`} className="flex items-center gap-2 text-sm text-muted-foreground">
             <MessageCircle className="w-5 h-5" />
-            <span>{trip.comments}</span>
-          </button>
+            <span>{comments.length || trip.comments}</span>
+          </Link>
 
           <button className="flex items-center gap-2 text-sm text-muted-foreground">
             <Share2 className="w-5 h-5" />
