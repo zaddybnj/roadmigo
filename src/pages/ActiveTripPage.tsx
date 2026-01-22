@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Navigation, Clock, MapPin, Gauge, Camera, FileText, 
+  Clock, MapPin, Gauge, FileText, 
   Flag, ChevronLeft, Zap, Mountain
 } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
@@ -9,9 +9,11 @@ import { useNavigate } from 'react-router-dom';
 import { UpdateTripModal } from '@/components/UpdateTripModal';
 import { EndTripModal } from '@/components/EndTripModal';
 import { USMap } from '@/components/USMap';
+import { PhotoGallery } from '@/components/PhotoGallery';
+import { PhotoUploader } from '@/components/PhotoUploader';
 
 const ActiveTripPage = () => {
-  const { activeTrip, isTracking } = useTrip();
+  const { activeTrip, isTracking, addPhoto } = useTrip();
   const navigate = useNavigate();
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
@@ -159,27 +161,25 @@ const ActiveTripPage = () => {
         </motion.div>
 
         {/* Photos */}
-        {activeTrip.photos.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-card rounded-xl p-4 card-elevated"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Camera className="w-5 h-5 text-primary" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-card rounded-xl p-4 card-elevated"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📷</span>
               <h3 className="font-display font-semibold">Trip Photos</h3>
               <span className="text-sm text-muted-foreground">({activeTrip.photos.length})</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {activeTrip.photos.slice(0, 6).map((photo, i) => (
-                <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted">
-                  <img src={photo} alt={`Trip photo ${i + 1}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+            <PhotoUploader 
+              onPhotosAdd={(photos) => photos.forEach(p => addPhoto(p))}
+              currentCount={activeTrip.photos.length}
+            />
+          </div>
+          <PhotoGallery photos={activeTrip.photos} />
+        </motion.div>
 
         {/* Notes */}
         {activeTrip.notes && (

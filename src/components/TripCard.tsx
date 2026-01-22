@@ -1,8 +1,9 @@
 import { Trip } from '@/types';
-import { Heart, MessageCircle, Share2, MapPin, Lock, Users, Globe } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, Lock, Users, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSocial } from '@/context/SocialContext';
+import { ShareMenu } from './ShareMenu';
 
 interface TripCardProps {
   trip: Trip;
@@ -138,10 +139,7 @@ export const TripCard = ({ trip }: TripCardProps) => {
             <span>{comments.length || trip.comments}</span>
           </Link>
 
-          <button className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Share2 className="w-5 h-5" />
-            <span>Share</span>
-          </button>
+          <ShareMenu trip={trip} />
         </div>
       </div>
     </motion.div>
