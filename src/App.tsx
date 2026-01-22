@@ -15,6 +15,7 @@ import ActiveTripPage from "./pages/ActiveTripPage";
 import TripDetailPage from "./pages/TripDetailPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import FollowersPage from "./pages/FollowersPage";
+import WrappedPage from "./pages/WrappedPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user/:id" element={<UserProfilePage />} />
                 <Route path="/friends" element={<FollowersPage />} />
+                <Route path="/wrapped" element={<WrappedPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <BottomNav />

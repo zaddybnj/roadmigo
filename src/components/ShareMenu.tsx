@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Share2, X, Instagram, Facebook, Twitter, Download, Map, Award, Flag } from 'lucide-react';
 import { Trip, Badge } from '@/types';
@@ -8,13 +8,33 @@ interface ShareMenuProps {
   trip?: Trip;
   badge?: Badge;
   trigger?: React.ReactNode;
+  // Controlled mode props
+  isOpen?: boolean;
+  onClose?: () => void;
+  title?: string;
+  description?: string;
 }
 
 type ShareCardType = 'trip-complete' | 'trip-stats' | 'achievement' | null;
 
-export const ShareMenu = ({ trip, badge, trigger }: ShareMenuProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const ShareMenu = ({ 
+  trip, 
+  badge, 
+  trigger, 
+  isOpen: controlledOpen, 
+  onClose, 
+  title: customTitle, 
+  description: customDescription 
+}: ShareMenuProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [activeCard, setActiveCard] = useState<ShareCardType>(null);
+  
+  // Support both controlled and uncontrolled modes
+  const isControlled = controlledOpen !== undefined;
+  const isOpen = isControlled ? controlledOpen : internalOpen;
+  const setIsOpen = isControlled 
+    ? (open: boolean) => { if (!open && onClose) onClose(); }
+    : setInternalOpen;
 
   const shareOptions = trip ? [
     { 
@@ -42,7 +62,9 @@ export const ShareMenu = ({ trip, badge, trigger }: ShareMenuProps) => {
   ] : [];
 
   const handleQuickShare = async (platform: 'instagram' | 'facebook' | 'twitter') => {
-    const shareText = trip 
+    const shareText = customTitle && customDescription
+      ? `${customTitle} - ${customDescription} 🚐✨`
+      : trip 
       ? `Just finished "${trip.title}" - ${trip.distance.toLocaleString()} miles across ${trip.states.length} states! 🚐✨`
       : badge 
       ? `I earned the "${badge.name}" badge! ${badge.description} 🏆`
@@ -70,15 +92,17 @@ export const ShareMenu = ({ trip, badge, trigger }: ShareMenuProps) => {
 
   return (
     <>
-      {/* Trigger */}
-      <div onClick={() => setIsOpen(true)}>
-        {trigger || (
-          <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <Share2 className="w-5 h-5" />
-            <span>Share</span>
-          </button>
-        )}
-      </div>
+      {/* Trigger - only show in uncontrolled mode */}
+      {!isControlled && (
+        <div onClick={() => setIsOpen(true)}>
+          {trigger || (
+            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Share2 className="w-5 h-5" />
+              <span>Share</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Share Menu Modal */}
       <AnimatePresence>
