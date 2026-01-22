@@ -205,9 +205,12 @@ const ProfilePage = () => {
               <h3 className="font-display font-semibold">2024 RV Wrapped</h3>
               <p className="text-sm text-muted-foreground">Your year in review is ready!</p>
             </div>
-            <button className="px-4 py-2 rounded-lg gradient-sunset text-primary-foreground text-sm font-medium">
+            <Link 
+              to="/wrapped"
+              className="px-4 py-2 rounded-lg gradient-sunset text-primary-foreground text-sm font-medium"
+            >
               View
-            </button>
+            </Link>
           </div>
         </motion.div>
 
