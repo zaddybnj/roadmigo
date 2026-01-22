@@ -7,6 +7,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { TripProvider } from "@/context/TripContext";
 import { SocialProvider } from "@/context/SocialContext";
 import { SubscriptionProvider } from "@/context/SubscriptionContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import FeedPage from "./pages/FeedPage";
 import MapPage from "./pages/MapPage";
 import TripsPage from "./pages/TripsPage";
@@ -19,6 +21,7 @@ import FollowersPage from "./pages/FollowersPage";
 import WrappedPage from "./pages/WrappedPage";
 import PricingPage from "./pages/PricingPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,35 +29,37 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <SubscriptionProvider>
-        <TripProvider>
-          <SocialProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <div className="min-h-screen bg-background">
-                <Routes>
-                  <Route path="/" element={<FeedPage />} />
-                  <Route path="/map" element={<MapPage />} />
-                  <Route path="/trips" element={<TripsPage />} />
-                  <Route path="/trip/active" element={<ActiveTripPage />} />
-                  <Route path="/trip/:id" element={<TripDetailPage />} />
-                  <Route path="/achievements" element={<AchievementsPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/user/:id" element={<UserProfilePage />} />
-                  <Route path="/friends" element={<FollowersPage />} />
-                  <Route path="/wrapped" element={<WrappedPage />} />
-                  <Route path="/pricing" element={<PricingPage />} />
-                  <Route path="/analytics" element={<AnalyticsPage />} />
-                  <Route path="*" element={<NotFound />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <BottomNav />
-              </div>
-            </BrowserRouter>
-          </SocialProvider>
-        </TripProvider>
-      </SubscriptionProvider>
+      <AuthProvider>
+        <SubscriptionProvider>
+          <TripProvider>
+            <SocialProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <div className="min-h-screen bg-background">
+                  <Routes>
+                    <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+                    <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+                    <Route path="/trips" element={<ProtectedRoute><TripsPage /></ProtectedRoute>} />
+                    <Route path="/trip/active" element={<ProtectedRoute><ActiveTripPage /></ProtectedRoute>} />
+                    <Route path="/trip/:id" element={<ProtectedRoute><TripDetailPage /></ProtectedRoute>} />
+                    <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
+                    <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                    <Route path="/user/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                    <Route path="/friends" element={<ProtectedRoute><FollowersPage /></ProtectedRoute>} />
+                    <Route path="/wrapped" element={<ProtectedRoute><WrappedPage /></ProtectedRoute>} />
+                    <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  <BottomNav />
+                </div>
+              </BrowserRouter>
+            </SocialProvider>
+          </TripProvider>
+        </SubscriptionProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

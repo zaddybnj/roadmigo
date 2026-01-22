@@ -8,23 +8,45 @@ import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { currentUser, visitedStates, trophies, streaks, gamificationData, achievements } from '@/data/mockData';
 import { useSocial } from '@/context/SocialContext';
 import { useSubscription } from '@/context/SubscriptionContext';
+import { useAuth } from '@/context/AuthContext';
 import { Trophy } from '@/types';
 import { motion } from 'framer-motion';
-import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, UserCheck, Trophy as TrophyIcon, Award, Flame, Star, Settings, Crown, Sparkles } from 'lucide-react';
+import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, Trophy as TrophyIcon, Award, Flame, Star, Settings, Crown, LogOut } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ProfilePage = () => {
   const { following, followers } = useSocial();
-  const { isPremium, tier, subscription } = useSubscription();
+  const { isPremium } = useSubscription();
+  const { profile, signOut, user } = useAuth();
+  const navigate = useNavigate();
   const [shareTrophy, setShareTrophy] = useState<Trophy | null>(null);
   const [privacySetting, setPrivacySetting] = useState<'public' | 'friends' | 'private'>('friends');
+  const [signingOut, setSigningOut] = useState(false);
   
   const unlockedBadges = achievements.reduce(
     (acc, cat) => acc + cat.badges.filter((b) => b.unlockedAt).length,
     0
   );
   const unlockedTrophies = trophies.filter((t) => t.unlockedAt).length;
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await signOut();
+    navigate('/auth');
+  };
+
+  // Use profile data if available, otherwise fall back to mock data
+  const displayName = profile?.display_name || currentUser.name;
+  const username = profile?.username ? `@${profile.username}` : currentUser.username;
+  const bio = profile?.bio || currentUser.bio;
+  const level = profile?.level || gamificationData.level;
+  const totalMiles = profile?.total_miles || currentUser.stats.totalMiles;
+  const totalTrips = profile?.total_trips || currentUser.stats.totalTrips;
+  const nightsCamped = profile?.nights_camped || currentUser.stats.nightsCamped;
+  const photosShared = profile?.photos_shared || currentUser.stats.photosShared;
+  const statesCount = profile?.states_visited?.length || visitedStates.length;
+  const joinedDate = user?.created_at || currentUser.joinedDate;
 
   const getLevelTitle = (level: number): string => {
     if (level < 5) return 'Newcomer';
@@ -71,15 +93,15 @@ const ProfilePage = () => {
             )}
           </div>
           <div className="flex items-center justify-center gap-2">
-            <h2 className="font-display text-xl font-bold">{currentUser.name}</h2>
+            <h2 className="font-display text-xl font-bold">{displayName}</h2>
             {isPremium && <PremiumBadge size="sm" />}
           </div>
-          <p className="text-muted-foreground text-sm">{currentUser.username}</p>
+          <p className="text-muted-foreground text-sm">{username}</p>
           
           {/* Level Title */}
           <div className="flex items-center justify-center gap-2 mt-2">
             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-medium text-primary">{getLevelTitle(gamificationData.level)}</span>
+            <span className="text-sm font-medium text-primary">{getLevelTitle(level)}</span>
           </div>
 
           {/* Follow Stats */}
@@ -95,11 +117,11 @@ const ProfilePage = () => {
           </div>
           
           <p className="text-sm text-muted-foreground mt-3 max-w-[280px] mx-auto">
-            {currentUser.bio}
+            {bio}
           </p>
           <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
             <Calendar className="w-3 h-3" />
-            Joined {new Date(currentUser.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            Joined {new Date(joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </p>
         </motion.div>
 
@@ -131,20 +153,20 @@ const ProfilePage = () => {
         <div className="grid grid-cols-2 gap-3 mb-6">
           <StatCard
             label="Miles Traveled"
-            value={currentUser.stats.totalMiles}
+            value={totalMiles}
             icon={MapPin}
             variant="primary"
             index={0}
           />
           <StatCard
             label="Total Trips"
-            value={currentUser.stats.totalTrips}
+            value={totalTrips}
             icon={Route}
             index={1}
           />
           <StatCard
             label="States Visited"
-            value={visitedStates.length}
+            value={statesCount}
             suffix="/ 50"
             icon={Globe}
             variant="secondary"
@@ -152,7 +174,7 @@ const ProfilePage = () => {
           />
           <StatCard
             label="Nights Camped"
-            value={currentUser.stats.nightsCamped}
+            value={nightsCamped}
             icon={Moon}
             index={3}
           />
@@ -344,7 +366,7 @@ const ProfilePage = () => {
             <div className="flex-1 text-left">
               <p className="font-medium text-sm">Photos</p>
             </div>
-            <span className="text-sm text-muted-foreground">{currentUser.stats.photosShared}</span>
+            <span className="text-sm text-muted-foreground">{photosShared}</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
 
@@ -364,9 +386,12 @@ const ProfilePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="w-full mt-4 py-3 text-center text-destructive text-sm font-medium"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="w-full mt-4 py-3 flex items-center justify-center gap-2 text-destructive text-sm font-medium hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
         >
-          Sign Out
+          <LogOut className="w-4 h-4" />
+          {signingOut ? 'Signing out...' : 'Sign Out'}
         </motion.button>
       </main>
 

@@ -14,6 +14,11 @@ export const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Hide nav on auth page
+  if (location.pathname === '/auth') {
+    return null;
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border safe-bottom z-50">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
