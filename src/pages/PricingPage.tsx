@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Crown, Check, Sparkles, Route, Camera, Award, Users, 
   History, Map, BarChart3, Images, Infinity, MapPinned, 
-  WifiOff, Palette, Headphones, ChevronLeft, Star
+  WifiOff, Palette, Headphones, ChevronLeft, Star, Loader2, Settings
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { useSubscription } from '@/context/SubscriptionContext';
+import { useSubscription, STRIPE_CONFIG } from '@/context/SubscriptionContext';
 import { PRICING_PLANS, PREMIUM_FEATURES } from '@/types/subscription';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const iconMap: Record<string, React.ReactNode> = {
   Route: <Route size={18} />,
@@ -31,8 +32,24 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const PricingPage = () => {
   const navigate = useNavigate();
-  const { isPremium, upgradeToPremium, tier } = useSubscription();
+  const [searchParams] = useSearchParams();
+  const { isPremium, tier, isLoading, createCheckout, openCustomerPortal, checkSubscription, subscriptionEnd, cancelAtPeriodEnd } = useSubscription();
   const [isYearly, setIsYearly] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  // Handle success/cancel from Stripe
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      toast.success('Welcome to Nomad Pro! Your subscription is now active.');
+      checkSubscription();
+      // Clear the query params
+      navigate('/pricing', { replace: true });
+    } else if (searchParams.get('canceled') === 'true') {
+      toast.info('Checkout was canceled.');
+      navigate('/pricing', { replace: true });
+    }
+  }, [searchParams, checkSubscription, navigate]);
 
   const freePlan = PRICING_PLANS.find(p => p.tier === 'free')!;
   const premiumPlan = PRICING_PLANS.find(p => p.tier === 'premium' && p.interval === (isYearly ? 'year' : 'month'))!;
@@ -41,13 +58,48 @@ const PricingPage = () => {
   const yearlyMonthlyPrice = (premiumPlan.price / 12).toFixed(2);
   const savings = Math.round((1 - (premiumPlan.price / 12) / monthlyPrice) * 100);
 
-  const handleUpgrade = () => {
-    upgradeToPremium();
-    navigate('/profile');
+  const handleUpgrade = async () => {
+    setCheckoutLoading(true);
+    try {
+      const url = await createCheckout(isYearly);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        toast.error('Failed to create checkout session');
+      }
+    } catch (err) {
+      toast.error('Something went wrong');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const url = await openCustomerPortal();
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        toast.error('Failed to open subscription management');
+      }
+    } catch (err) {
+      toast.error('Something went wrong');
+    } finally {
+      setPortalLoading(false);
+    }
   };
 
   const freeFeatures = PREMIUM_FEATURES.filter(f => f.tier === 'free');
   const premiumFeatures = PREMIUM_FEATURES.filter(f => f.tier === 'premium');
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -80,26 +132,28 @@ const PricingPage = () => {
           </p>
         </motion.div>
 
-        {/* Billing Toggle */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center justify-center gap-3 mb-8"
-        >
-          <span className={cn("text-sm", !isYearly && "text-foreground font-medium", isYearly && "text-muted-foreground")}>
-            Monthly
-          </span>
-          <Switch checked={isYearly} onCheckedChange={setIsYearly} />
-          <span className={cn("text-sm", isYearly && "text-foreground font-medium", !isYearly && "text-muted-foreground")}>
-            Yearly
-          </span>
-          {isYearly && (
-            <span className="ml-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-success/20 text-success">
-              Save {savings}%
+        {/* Billing Toggle - only show if not premium */}
+        {!isPremium && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="flex items-center justify-center gap-3 mb-8"
+          >
+            <span className={cn("text-sm", !isYearly && "text-foreground font-medium", isYearly && "text-muted-foreground")}>
+              Monthly
             </span>
-          )}
-        </motion.div>
+            <Switch checked={isYearly} onCheckedChange={setIsYearly} />
+            <span className={cn("text-sm", isYearly && "text-foreground font-medium", !isYearly && "text-muted-foreground")}>
+              Yearly
+            </span>
+            {isYearly && (
+              <span className="ml-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-success/20 text-success">
+                Save {savings}%
+              </span>
+            )}
+          </motion.div>
+        )}
 
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-6 mb-12">
@@ -139,15 +193,9 @@ const PricingPage = () => {
               ))}
             </ul>
 
-            {tier === 'free' ? (
-              <Button variant="outline" className="w-full" disabled>
-                Current Plan
-              </Button>
-            ) : (
-              <Button variant="outline" className="w-full">
-                Downgrade
-              </Button>
-            )}
+            <Button variant="outline" className="w-full" disabled>
+              {tier === 'free' ? 'Current Plan' : 'Free Tier'}
+            </Button>
           </motion.div>
 
           {/* Premium Plan */}
@@ -166,7 +214,7 @@ const PricingPage = () => {
             <div className="absolute top-4 right-4">
               <span className="flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-[hsl(265_85%_60%)] to-[hsl(280_80%_55%)] text-white">
                 <Star size={12} fill="currentColor" />
-                Most Popular
+                {isPremium ? 'Your Plan' : 'Most Popular'}
               </span>
             </div>
 
@@ -181,14 +229,27 @@ const PricingPage = () => {
             </div>
 
             <div className="mb-6">
-              <span className="font-display text-4xl font-bold">
-                ${isYearly ? yearlyMonthlyPrice : premiumPlan.price}
-              </span>
-              <span className="text-muted-foreground">/month</span>
-              {isYearly && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Billed ${premiumPlan.price}/year
-                </p>
+              {isPremium ? (
+                <>
+                  <span className="font-display text-4xl font-bold text-[hsl(265_85%_60%)]">Active</span>
+                  {subscriptionEnd && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {cancelAtPeriodEnd ? 'Cancels' : 'Renews'} {formatDate(subscriptionEnd)}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="font-display text-4xl font-bold">
+                    ${isYearly ? yearlyMonthlyPrice : premiumPlan.price}
+                  </span>
+                  <span className="text-muted-foreground">/month</span>
+                  {isYearly && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Billed ${premiumPlan.price}/year
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
@@ -202,16 +263,30 @@ const PricingPage = () => {
             </ul>
 
             {isPremium ? (
-              <Button className="w-full bg-gradient-to-r from-[hsl(265_85%_60%)] to-[hsl(280_80%_55%)]" disabled>
-                <Crown size={16} className="mr-2" />
-                You're a Pro!
+              <Button 
+                onClick={handleManageSubscription}
+                disabled={portalLoading || isLoading}
+                variant="outline"
+                className="w-full gap-2 border-[hsl(265_85%_60%)] text-[hsl(265_85%_60%)] hover:bg-[hsl(265_85%_60%)]/10"
+              >
+                {portalLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Settings size={16} />
+                )}
+                Manage Subscription
               </Button>
             ) : (
               <Button 
                 onClick={handleUpgrade}
+                disabled={checkoutLoading || isLoading}
                 className="w-full gap-2 bg-gradient-to-r from-[hsl(265_85%_60%)] to-[hsl(280_80%_55%)] hover:opacity-90"
               >
-                <Sparkles size={16} />
+                {checkoutLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Sparkles size={16} />
+                )}
                 Upgrade to Pro
               </Button>
             )}
