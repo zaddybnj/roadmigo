@@ -14,7 +14,270 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          likes_count: number | null
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          likes_count?: number | null
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          likes_count?: number | null
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_premium: boolean | null
+          level: number | null
+          nights_camped: number | null
+          photos_shared: number | null
+          premium_expires_at: string | null
+          privacy_setting: string | null
+          states_visited: string[] | null
+          total_miles: number | null
+          total_trips: number | null
+          updated_at: string
+          user_id: string
+          username: string
+          xp: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_premium?: boolean | null
+          level?: number | null
+          nights_camped?: number | null
+          photos_shared?: number | null
+          premium_expires_at?: string | null
+          privacy_setting?: string | null
+          states_visited?: string[] | null
+          total_miles?: number | null
+          total_trips?: number | null
+          updated_at?: string
+          user_id: string
+          username: string
+          xp?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_premium?: boolean | null
+          level?: number | null
+          nights_camped?: number | null
+          photos_shared?: number | null
+          premium_expires_at?: string | null
+          privacy_setting?: string | null
+          states_visited?: string[] | null
+          total_miles?: number | null
+          total_trips?: number | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+          xp?: number | null
+        }
+        Relationships: []
+      }
+      trip_likes: {
+        Row: {
+          created_at: string
+          id: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_likes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          comments_count: number | null
+          created_at: string
+          description: string | null
+          distance: number | null
+          end_date: string | null
+          id: string
+          likes_count: number | null
+          nights: number | null
+          notes: string | null
+          photos: string[] | null
+          privacy: string | null
+          route: Json | null
+          start_date: string
+          states: string[] | null
+          status: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comments_count?: number | null
+          created_at?: string
+          description?: string | null
+          distance?: number | null
+          end_date?: string | null
+          id?: string
+          likes_count?: number | null
+          nights?: number | null
+          notes?: string | null
+          photos?: string[] | null
+          privacy?: string | null
+          route?: Json | null
+          start_date: string
+          states?: string[] | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comments_count?: number | null
+          created_at?: string
+          description?: string | null
+          distance?: number | null
+          end_date?: string | null
+          id?: string
+          likes_count?: number | null
+          nights?: number | null
+          notes?: string | null
+          photos?: string[] | null
+          privacy?: string | null
+          route?: Json | null
+          start_date?: string
+          states?: string[] | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
