@@ -2,12 +2,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ChevronLeft, MapPin, Calendar, Moon, Heart, 
-  MessageCircle, Share2, FileText, Camera, Mountain, Lock, Users, Globe
+  MessageCircle, FileText, Mountain, Lock, Users, Globe
 } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import { useSocial } from '@/context/SocialContext';
 import { USMap } from '@/components/USMap';
 import { CommentSection } from '@/components/CommentSection';
+import { PhotoGallery } from '@/components/PhotoGallery';
+import { ShareMenu } from '@/components/ShareMenu';
 import { useState } from 'react';
 
 const TripDetailPage = () => {
@@ -196,30 +198,21 @@ const TripDetailPage = () => {
         </motion.div>
 
         {/* Photos Gallery */}
-        {trip.photos.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-card rounded-xl p-4 card-elevated"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Camera className="w-5 h-5 text-primary" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-card rounded-xl p-4 card-elevated"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📷</span>
               <h3 className="font-display font-semibold">Photos</h3>
               <span className="text-sm text-muted-foreground">({trip.photos.length})</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {trip.photos.map((photo, i) => (
-                <div 
-                  key={i} 
-                  className={`rounded-lg overflow-hidden bg-muted ${i === 0 ? 'col-span-2 aspect-video' : 'aspect-square'}`}
-                >
-                  <img src={photo} alt={`Trip photo ${i + 1}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+          </div>
+          <PhotoGallery photos={trip.photos} />
+        </motion.div>
 
         {/* Notes */}
         {trip.notes && (
@@ -264,10 +257,7 @@ const TripDetailPage = () => {
             <span>{comments.length}</span>
           </button>
 
-          <button className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Share2 className="w-6 h-6" />
-            <span>Share</span>
-          </button>
+          <ShareMenu trip={trip} />
         </motion.div>
 
         {/* Comments Section */}
