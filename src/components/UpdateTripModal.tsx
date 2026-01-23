@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Gauge, MapPin, FileText, Image, X, Plus, Minus } from 'lucide-react';
+import { Gauge, MapPin, FileText, Image, Plus, Landmark, X } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import {
   Drawer,
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { MILESTONE_CATEGORIES, getCategoryInfo, Milestone, MilestoneCategory } from '@/types/milestone';
 
 interface UpdateTripModalProps {
   isOpen: boolean;
@@ -40,12 +41,17 @@ const US_STATES = [
 ];
 
 export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
-  const { activeTrip, updateMiles, addState, updateNotes, addPhoto } = useTrip();
+  const { activeTrip, updateMiles, addState, updateNotes, addPhoto, addMilestone, removeMilestone } = useTrip();
   const { toast } = useToast();
   const [milesInput, setMilesInput] = useState('');
   const [notesInput, setNotesInput] = useState(activeTrip?.notes || '');
   const [photoUrl, setPhotoUrl] = useState('');
   const [activeTab, setActiveTab] = useState('miles');
+  
+  // Milestone form state
+  const [milestoneName, setMilestoneName] = useState('');
+  const [milestoneCategory, setMilestoneCategory] = useState<MilestoneCategory>('national_park');
+  const [milestoneNotes, setMilestoneNotes] = useState('');
 
   if (!activeTrip) return null;
 
@@ -99,6 +105,42 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
     }
   };
 
+  const handleAddMilestone = async () => {
+    if (!milestoneName.trim()) {
+      toast({
+        title: 'Name required',
+        description: 'Please enter a name for this milestone',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const newMilestone: Milestone = {
+      id: crypto.randomUUID(),
+      name: milestoneName.trim(),
+      category: milestoneCategory,
+      notes: milestoneNotes.trim() || undefined,
+      timestamp: new Date().toISOString(),
+    };
+
+    await addMilestone(newMilestone);
+    toast({
+      title: 'Milestone added!',
+      description: `${getCategoryInfo(milestoneCategory).icon} ${milestoneName} added to your trip`,
+    });
+    
+    setMilestoneName('');
+    setMilestoneNotes('');
+  };
+
+  const handleRemoveMilestone = async (id: string, name: string) => {
+    await removeMilestone(id);
+    toast({
+      title: 'Milestone removed',
+      description: `${name} removed from your trip`,
+    });
+  };
+
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent className="max-h-[85vh]">
@@ -111,7 +153,7 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
 
         <div className="px-4 pb-6 overflow-y-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsList className="grid w-full grid-cols-5 mb-4">
               <TabsTrigger value="miles" className="flex items-center gap-1.5 text-xs">
                 <Gauge className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Miles</span>
@@ -119,6 +161,10 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
               <TabsTrigger value="states" className="flex items-center gap-1.5 text-xs">
                 <MapPin className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">States</span>
+              </TabsTrigger>
+              <TabsTrigger value="milestones" className="flex items-center gap-1.5 text-xs">
+                <Landmark className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Spots</span>
               </TabsTrigger>
               <TabsTrigger value="notes" className="flex items-center gap-1.5 text-xs">
                 <FileText className="w-3.5 h-3.5" />
@@ -217,6 +263,90 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
                     </button>
                   ))}
                 </div>
+              </div>
+            </TabsContent>
+
+            {/* Milestones Tab */}
+            <TabsContent value="milestones" className="space-y-4 mt-0">
+              {/* Current milestones */}
+              {activeTrip.milestones.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Added ({activeTrip.milestones.length})
+                  </p>
+                  <div className="space-y-2 max-h-[150px] overflow-y-auto">
+                    {activeTrip.milestones.map((milestone) => {
+                      const catInfo = getCategoryInfo(milestone.category);
+                      return (
+                        <div 
+                          key={milestone.id}
+                          className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                        >
+                          <span className="text-xl">{catInfo.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{milestone.name}</p>
+                            <p className="text-xs text-muted-foreground">{catInfo.label}</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveMilestone(milestone.id, milestone.name)}
+                            className="p-1.5 hover:bg-destructive/20 rounded-full transition-colors"
+                          >
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Add new milestone */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-muted-foreground">Add New Location</p>
+                
+                {/* Category selection */}
+                <div className="flex flex-wrap gap-2">
+                  {MILESTONE_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.value}
+                      onClick={() => setMilestoneCategory(cat.value)}
+                      className={`px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-1.5 ${
+                        milestoneCategory === cat.value
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      <span>{cat.icon}</span>
+                      <span className="hidden sm:inline">{cat.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Name input */}
+                <Input
+                  value={milestoneName}
+                  onChange={(e) => setMilestoneName(e.target.value)}
+                  placeholder={`Enter ${getCategoryInfo(milestoneCategory).label.toLowerCase()} name...`}
+                  className="w-full"
+                />
+
+                {/* Optional notes */}
+                <Textarea
+                  value={milestoneNotes}
+                  onChange={(e) => setMilestoneNotes(e.target.value)}
+                  placeholder="Add notes (optional)..."
+                  rows={2}
+                  className="resize-none"
+                />
+
+                <Button 
+                  onClick={handleAddMilestone}
+                  className="w-full gradient-sunset"
+                  disabled={!milestoneName.trim()}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add {getCategoryInfo(milestoneCategory).label}
+                </Button>
               </div>
             </TabsContent>
 

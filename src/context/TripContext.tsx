@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
+import { Milestone } from '@/types/milestone';
 
 type DbTrip = Tables<'trips'>;
 
@@ -17,6 +18,7 @@ export interface ActiveTrip {
   waypoints: Waypoint[];
   photos: string[];
   notes: string;
+  milestones: Milestone[];
 }
 
 export interface Waypoint {
@@ -47,6 +49,7 @@ export interface Trip {
   privacy: 'public' | 'friends' | 'private';
   isLiked: boolean;
   status: 'active' | 'completed';
+  milestones: Milestone[];
 }
 
 interface TripContextType {
@@ -60,6 +63,8 @@ interface TripContextType {
   addPhoto: (photoUrl: string) => Promise<void>;
   updateNotes: (notes: string) => Promise<void>;
   addState: (state: string) => Promise<void>;
+  addMilestone: (milestone: Milestone) => Promise<void>;
+  removeMilestone: (milestoneId: string) => Promise<void>;
   refreshTrips: () => Promise<void>;
 }
 
@@ -86,6 +91,7 @@ const dbTripToTrip = (dbTrip: DbTrip, userName: string, userAvatar: string, isLi
   privacy: (dbTrip.privacy as Trip['privacy']) || 'public',
   isLiked,
   status: (dbTrip.status as Trip['status']) || 'completed',
+  milestones: ((dbTrip as any).milestones as Milestone[]) || [],
 });
 
 export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -151,6 +157,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
           waypoints: [],
           photos: activeDbTrip.photos || [],
           notes: activeDbTrip.notes || '',
+          milestones: ((activeDbTrip as any).milestones as Milestone[]) || [],
         });
       } else {
         setActiveTrip(null);
@@ -233,6 +240,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       waypoints: [],
       photos: [],
       notes: '',
+      milestones: [],
     });
   }, [user]);
 
@@ -338,6 +346,32 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchTrips();
   }, [fetchTrips]);
 
+  const addMilestone = useCallback(async (milestone: Milestone) => {
+    if (!activeTrip) return;
+
+    const newMilestones = [...activeTrip.milestones, milestone];
+
+    await supabase
+      .from('trips')
+      .update({ milestones: newMilestones } as any)
+      .eq('id', activeTrip.id);
+
+    setActiveTrip(prev => prev ? { ...prev, milestones: newMilestones } : null);
+  }, [activeTrip]);
+
+  const removeMilestone = useCallback(async (milestoneId: string) => {
+    if (!activeTrip) return;
+
+    const newMilestones = activeTrip.milestones.filter(m => m.id !== milestoneId);
+
+    await supabase
+      .from('trips')
+      .update({ milestones: newMilestones } as any)
+      .eq('id', activeTrip.id);
+
+    setActiveTrip(prev => prev ? { ...prev, milestones: newMilestones } : null);
+  }, [activeTrip]);
+
   return (
     <TripContext.Provider value={{
       activeTrip,
@@ -350,6 +384,8 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addPhoto,
       updateNotes,
       addState,
+      addMilestone,
+      removeMilestone,
       refreshTrips,
     }}>
       {children}
