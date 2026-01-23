@@ -15,6 +15,8 @@ export interface Milestone {
   category: MilestoneCategory;
   notes?: string;
   timestamp: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export const MILESTONE_CATEGORIES: { value: MilestoneCategory; label: string; icon: string }[] = [
