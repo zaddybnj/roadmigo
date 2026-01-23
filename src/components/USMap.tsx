@@ -80,24 +80,29 @@ export const USMap = ({ visitedStates, milestones = [] }: USMapProps) => {
             <Marker
               key={milestone.id}
               coordinates={[milestone.longitude!, milestone.latitude!]}
-              onMouseEnter={() => setHoveredMilestone(milestone.id)}
-              onMouseLeave={() => setHoveredMilestone(null)}
             >
               <g
                 style={{ cursor: 'pointer' }}
                 transform="translate(-12, -24)"
+                onMouseEnter={() => setHoveredMilestone(milestone.id)}
+                onMouseLeave={() => setHoveredMilestone(null)}
               >
+                {/* Invisible larger hit area to prevent flickering */}
+                <rect
+                  x="-4"
+                  y="-4"
+                  width="32"
+                  height="40"
+                  fill="transparent"
+                  style={{ pointerEvents: 'all' }}
+                />
                 {/* Pin shape */}
                 <path
                   d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20s12-12.8 12-20c0-6.6-5.4-12-12-12z"
                   fill={isHovered ? 'hsl(32, 95%, 55%)' : 'hsl(32, 95%, 44%)'}
                   stroke="hsl(220, 20%, 15%)"
                   strokeWidth="1"
-                  style={{
-                    transition: 'all 0.2s ease',
-                    transform: isHovered ? 'scale(1.2)' : 'scale(1)',
-                    transformOrigin: 'center bottom',
-                  }}
+                  style={{ pointerEvents: 'none' }}
                 />
                 {/* Emoji icon inside pin */}
                 <text
