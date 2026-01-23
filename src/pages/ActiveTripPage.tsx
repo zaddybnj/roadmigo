@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Clock, MapPin, Gauge, FileText, 
-  Flag, ChevronLeft, Zap, Mountain
+  Flag, ChevronLeft, Zap, Mountain, Landmark
 } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { EndTripModal } from '@/components/EndTripModal';
 import { USMap } from '@/components/USMap';
 import { PhotoGallery } from '@/components/PhotoGallery';
 import { PhotoUploader } from '@/components/PhotoUploader';
+import { getCategoryInfo } from '@/types/milestone';
 
 const ActiveTripPage = () => {
   const { activeTrip, isTracking, addPhoto } = useTrip();
@@ -159,6 +160,45 @@ const ActiveTripPage = () => {
             <USMap visitedStates={activeTrip.statesVisited} />
           </div>
         </motion.div>
+
+        {/* Milestones */}
+        {activeTrip.milestones.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.17 }}
+            className="bg-card rounded-xl p-4 card-elevated"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-secondary" />
+                <h3 className="font-display font-semibold">Notable Locations</h3>
+              </div>
+              <span className="text-sm text-muted-foreground">{activeTrip.milestones.length} spots</span>
+            </div>
+            
+            <div className="space-y-2">
+              {activeTrip.milestones.map((milestone) => {
+                const catInfo = getCategoryInfo(milestone.category);
+                return (
+                  <div 
+                    key={milestone.id}
+                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                  >
+                    <span className="text-xl">{catInfo.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{milestone.name}</p>
+                      <p className="text-xs text-muted-foreground">{catInfo.label}</p>
+                      {milestone.notes && (
+                        <p className="text-xs text-muted-foreground/70 mt-0.5 line-clamp-1">{milestone.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {/* Photos */}
         <motion.div

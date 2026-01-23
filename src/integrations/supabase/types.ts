@@ -203,6 +203,7 @@ export type Database = {
           end_date: string | null
           id: string
           likes_count: number | null
+          milestones: Json | null
           nights: number | null
           notes: string | null
           photos: string[] | null
@@ -223,6 +224,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           likes_count?: number | null
+          milestones?: Json | null
           nights?: number | null
           notes?: string | null
           photos?: string[] | null
@@ -243,6 +245,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           likes_count?: number | null
+          milestones?: Json | null
           nights?: number | null
           notes?: string | null
           photos?: string[] | null

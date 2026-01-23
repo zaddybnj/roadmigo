@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ChevronLeft, MapPin, Calendar, Moon, Heart, 
-  MessageCircle, FileText, Mountain, Lock, Users, Globe
+  MessageCircle, FileText, Mountain, Lock, Users, Globe, Landmark
 } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import { useSocial } from '@/context/SocialContext';
@@ -10,6 +10,7 @@ import { USMap } from '@/components/USMap';
 import { CommentSection } from '@/components/CommentSection';
 import { PhotoGallery } from '@/components/PhotoGallery';
 import { ShareMenu } from '@/components/ShareMenu';
+import { getCategoryInfo } from '@/types/milestone';
 import { useState } from 'react';
 
 const TripDetailPage = () => {
@@ -211,6 +212,45 @@ const TripDetailPage = () => {
           </div>
           <PhotoGallery photos={trip.photos} />
         </motion.div>
+
+        {/* Milestones */}
+        {trip.milestones && trip.milestones.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+            className="bg-card rounded-xl p-4 card-elevated"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-secondary" />
+                <h3 className="font-display font-semibold">Notable Locations</h3>
+              </div>
+              <span className="text-sm text-muted-foreground">{trip.milestones.length} spots</span>
+            </div>
+            
+            <div className="space-y-2">
+              {trip.milestones.map((milestone) => {
+                const catInfo = getCategoryInfo(milestone.category);
+                return (
+                  <div 
+                    key={milestone.id}
+                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                  >
+                    <span className="text-xl">{catInfo.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{milestone.name}</p>
+                      <p className="text-xs text-muted-foreground">{catInfo.label}</p>
+                      {milestone.notes && (
+                        <p className="text-xs text-muted-foreground/70 mt-0.5">{milestone.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {/* Notes */}
         {trip.notes && (
