@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { MILESTONE_CATEGORIES, getCategoryInfo, Milestone, MilestoneCategory } from '@/types/milestone';
+import { LocationSearch } from '@/components/LocationSearch';
 
 interface UpdateTripModalProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
   const [milestoneName, setMilestoneName] = useState('');
   const [milestoneCategory, setMilestoneCategory] = useState<MilestoneCategory>('national_park');
   const [milestoneNotes, setMilestoneNotes] = useState('');
+  const [milestoneCoords, setMilestoneCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   if (!activeTrip) return null;
 
@@ -121,16 +123,19 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
       category: milestoneCategory,
       notes: milestoneNotes.trim() || undefined,
       timestamp: new Date().toISOString(),
+      latitude: milestoneCoords?.lat,
+      longitude: milestoneCoords?.lng,
     };
 
     await addMilestone(newMilestone);
     toast({
       title: 'Milestone added!',
-      description: `${getCategoryInfo(milestoneCategory).icon} ${milestoneName} added to your trip`,
+      description: `${getCategoryInfo(milestoneCategory).icon} ${milestoneName} added to your trip${milestoneCoords ? ' with map pin' : ''}`,
     });
     
     setMilestoneName('');
     setMilestoneNotes('');
+    setMilestoneCoords(null);
   };
 
   const handleRemoveMilestone = async (id: string, name: string) => {
@@ -322,13 +327,30 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
                   ))}
                 </div>
 
-                {/* Name input */}
-                <Input
+                {/* Location search with geocoding */}
+                <LocationSearch
                   value={milestoneName}
-                  onChange={(e) => setMilestoneName(e.target.value)}
-                  placeholder={`Enter ${getCategoryInfo(milestoneCategory).label.toLowerCase()} name...`}
-                  className="w-full"
+                  onChange={setMilestoneName}
+                  onLocationSelect={(location) => {
+                    setMilestoneName(location.name);
+                    setMilestoneCoords({ lat: location.latitude, lng: location.longitude });
+                  }}
+                  placeholder={`Search for ${getCategoryInfo(milestoneCategory).label.toLowerCase()}...`}
                 />
+
+                {/* Location indicator */}
+                {milestoneCoords && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-secondary/20 rounded-lg text-sm">
+                    <MapPin className="w-4 h-4 text-secondary" />
+                    <span className="text-secondary">📍 Location pinned to map</span>
+                    <button 
+                      onClick={() => setMilestoneCoords(null)}
+                      className="ml-auto text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Optional notes */}
                 <Textarea

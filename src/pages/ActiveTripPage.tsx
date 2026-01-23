@@ -157,7 +157,7 @@ const ActiveTripPage = () => {
             </div>
           </div>
           <div className="p-2">
-            <USMap visitedStates={activeTrip.statesVisited} />
+            <USMap visitedStates={activeTrip.statesVisited} milestones={activeTrip.milestones} />
           </div>
         </motion.div>
 
@@ -180,6 +180,7 @@ const ActiveTripPage = () => {
             <div className="space-y-2">
               {activeTrip.milestones.map((milestone) => {
                 const catInfo = getCategoryInfo(milestone.category);
+                const hasPinned = milestone.latitude && milestone.longitude;
                 return (
                   <div 
                     key={milestone.id}
@@ -187,7 +188,12 @@ const ActiveTripPage = () => {
                   >
                     <span className="text-xl">{catInfo.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{milestone.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium truncate">{milestone.name}</p>
+                        {hasPinned && (
+                          <MapPin className="w-3 h-3 text-secondary flex-shrink-0" />
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">{catInfo.label}</p>
                       {milestone.notes && (
                         <p className="text-xs text-muted-foreground/70 mt-0.5 line-clamp-1">{milestone.notes}</p>
