@@ -11,18 +11,22 @@ import { useSubscription } from '@/context/SubscriptionContext';
 import { useAuth } from '@/context/AuthContext';
 import { Trophy } from '@/types';
 import { motion } from 'framer-motion';
-import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, Trophy as TrophyIcon, Award, Flame, Star, Settings, Crown, LogOut } from 'lucide-react';
+import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, Trophy as TrophyIcon, Award, Flame, Star, Settings, Crown, LogOut, Pencil, Check, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 const ProfilePage = () => {
   const { following, followers } = useSocial();
   const { isPremium } = useSubscription();
-  const { profile, signOut, user } = useAuth();
+  const { profile, signOut, user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [shareTrophy, setShareTrophy] = useState<Trophy | null>(null);
   const [privacySetting, setPrivacySetting] = useState<'public' | 'friends' | 'private'>('friends');
   const [signingOut, setSigningOut] = useState(false);
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [editedBio, setEditedBio] = useState(profile?.bio || '');
+  const [isSavingBio, setIsSavingBio] = useState(false);
   
   const unlockedBadges = achievements.reduce(
     (acc, cat) => acc + cat.badges.filter((b) => b.unlockedAt).length,
@@ -34,6 +38,23 @@ const ProfilePage = () => {
     setSigningOut(true);
     await signOut();
     navigate('/auth');
+  };
+
+  const handleSaveBio = async () => {
+    setIsSavingBio(true);
+    const { error } = await updateProfile({ bio: editedBio });
+    setIsSavingBio(false);
+    if (error) {
+      toast.error('Failed to update bio');
+    } else {
+      toast.success('Bio updated!');
+      setIsEditingBio(false);
+    }
+  };
+
+  const handleCancelEditBio = () => {
+    setEditedBio(profile?.bio || '');
+    setIsEditingBio(false);
   };
 
   // Use profile data if available, otherwise fall back to mock data
@@ -116,9 +137,45 @@ const ProfilePage = () => {
             </Link>
           </div>
           
-          <p className="text-sm text-muted-foreground mt-3 max-w-[280px] mx-auto">
-            {bio}
-          </p>
+          {isEditingBio ? (
+            <div className="mt-3 max-w-[280px] mx-auto">
+              <Textarea
+                value={editedBio}
+                onChange={(e) => setEditedBio(e.target.value)}
+                placeholder="Tell us about your RV adventures..."
+                className="text-sm min-h-[80px] resize-none"
+                maxLength={200}
+              />
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <button
+                  onClick={handleCancelEditBio}
+                  disabled={isSavingBio}
+                  className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleSaveBio}
+                  disabled={isSavingBio}
+                  className="p-2 rounded-lg gradient-sunset text-primary-foreground transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{editedBio.length}/200</p>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setEditedBio(profile?.bio || '');
+                setIsEditingBio(true);
+              }}
+              className="group text-sm text-muted-foreground mt-3 max-w-[280px] mx-auto flex items-center gap-1.5 hover:text-foreground transition-colors"
+            >
+              <span>{bio || 'Add a bio...'}</span>
+              <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          )}
           <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
             <Calendar className="w-3 h-3" />
             Joined {new Date(joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
