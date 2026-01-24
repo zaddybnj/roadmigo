@@ -11,11 +11,12 @@ import { useSubscription } from '@/context/SubscriptionContext';
 import { useAuth } from '@/context/AuthContext';
 import { Trophy } from '@/types';
 import { motion } from 'framer-motion';
-import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, Trophy as TrophyIcon, Award, Flame, Star, Settings, Crown, LogOut, Pencil, Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { MapPin, Route, Moon, Camera, Calendar, Users, ChevronRight, Lock, Globe, Trophy as TrophyIcon, Award, Flame, Star, Settings, Crown, LogOut, Pencil, Check, X, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 const ProfilePage = () => {
   const { following, followers } = useSocial();
   const { isPremium } = useSubscription();
@@ -27,6 +28,8 @@ const ProfilePage = () => {
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [editedBio, setEditedBio] = useState(profile?.bio || '');
   const [isSavingBio, setIsSavingBio] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   
   const unlockedBadges = achievements.reduce(
     (acc, cat) => acc + cat.badges.filter((b) => b.unlockedAt).length,
@@ -55,6 +58,57 @@ const ProfilePage = () => {
   const handleCancelEditBio = () => {
     setEditedBio(profile?.bio || '');
     setIsEditingBio(false);
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // Upload to avatars bucket
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await updateProfile({ avatar_url: publicUrl });
+      if (updateError) throw updateError;
+
+      toast.success('Profile photo updated!');
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast.error('Failed to upload photo');
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset input
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
   };
 
   // Use profile data if available, otherwise fall back to mock data
@@ -99,9 +153,36 @@ const ProfilePage = () => {
           className="text-center mb-6"
         >
           <div className="relative inline-block">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">🚐</span>
-            </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={isUploadingAvatar}
+              className="relative w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 group overflow-hidden"
+            >
+              {profile?.avatar_url ? (
+                <img 
+                  src={profile.avatar_url} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-4xl">🚐</span>
+              )}
+              {/* Edit overlay */}
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
+              </div>
+            </button>
             {/* Level Badge */}
             <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full gradient-sunset flex items-center justify-center border-3 border-background glow-primary">
               <span className="text-sm font-bold">{gamificationData.level}</span>
