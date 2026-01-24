@@ -76,6 +76,8 @@ interface TripContextType {
   addState: (state: string) => Promise<void>;
   addMilestone: (milestone: Milestone) => Promise<void>;
   removeMilestone: (milestoneId: string) => Promise<void>;
+  addRouteStop: (stop: Waypoint) => Promise<void>;
+  removeRouteStop: (stopId: string) => Promise<void>;
   refreshTrips: () => Promise<void>;
 }
 
@@ -180,6 +182,15 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const activeDbTrip = trips?.find(t => t.status === 'active' && t.user_id === user.id);
       
       if (activeDbTrip) {
+        // Parse waypoints from route JSONB if they exist
+        let activeWaypoints: Waypoint[] = [];
+        if (activeDbTrip.route && typeof activeDbTrip.route === 'object' && !Array.isArray(activeDbTrip.route)) {
+          const routeData = activeDbTrip.route as any;
+          if (routeData.stops && Array.isArray(routeData.stops)) {
+            activeWaypoints = routeData.stops;
+          }
+        }
+
         setActiveTrip({
           id: activeDbTrip.id,
           title: activeDbTrip.title,
@@ -190,7 +201,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
           daysOnRoad: Math.max(1, Math.ceil(
             (new Date().getTime() - new Date(activeDbTrip.start_date).getTime()) / (1000 * 60 * 60 * 24)
           )),
-          waypoints: [],
+          waypoints: activeWaypoints,
           photos: activeDbTrip.photos || [],
           notes: activeDbTrip.notes || '',
           milestones: ((activeDbTrip as any).milestones as Milestone[]) || [],
@@ -423,6 +434,37 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveTrip(prev => prev ? { ...prev, milestones: newMilestones } : null);
   }, [activeTrip]);
 
+  const addRouteStop = useCallback(async (stop: Waypoint) => {
+    if (!activeTrip) return;
+
+    const newWaypoints = [...activeTrip.waypoints, stop];
+    
+    // Store waypoints in the route JSONB column as { stops: [...] }
+    const routePayload = { stops: newWaypoints };
+
+    await supabase
+      .from('trips')
+      .update({ route: routePayload } as any)
+      .eq('id', activeTrip.id);
+
+    setActiveTrip(prev => prev ? { ...prev, waypoints: newWaypoints } : null);
+  }, [activeTrip]);
+
+  const removeRouteStop = useCallback(async (stopId: string) => {
+    if (!activeTrip) return;
+
+    const newWaypoints = activeTrip.waypoints.filter(w => w.id !== stopId);
+    
+    const routePayload = { stops: newWaypoints };
+
+    await supabase
+      .from('trips')
+      .update({ route: routePayload } as any)
+      .eq('id', activeTrip.id);
+
+    setActiveTrip(prev => prev ? { ...prev, waypoints: newWaypoints } : null);
+  }, [activeTrip]);
+
   return (
     <TripContext.Provider value={{
       activeTrip,
@@ -437,6 +479,8 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addState,
       addMilestone,
       removeMilestone,
+      addRouteStop,
+      removeRouteStop,
       refreshTrips,
     }}>
       {children}

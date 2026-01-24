@@ -157,7 +157,11 @@ const ActiveTripPage = () => {
             </div>
           </div>
           <div className="p-2">
-            <USMap visitedStates={activeTrip.statesVisited} milestones={activeTrip.milestones} />
+            <USMap 
+              visitedStates={activeTrip.statesVisited} 
+              milestones={activeTrip.milestones}
+              activeStops={activeTrip.waypoints}
+            />
           </div>
         </motion.div>
 
