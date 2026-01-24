@@ -1,13 +1,16 @@
-import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
+import { ComposableMap, Geographies, Geography, Marker, Line } from 'react-simple-maps';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Milestone, getCategoryInfo } from '@/types/milestone';
+import { RouteData, formatRouteMiles, formatRouteDuration } from '@/lib/routing';
+import { Navigation } from 'lucide-react';
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
 
 interface USMapProps {
   visitedStates: string[];
   milestones?: Milestone[];
+  routeInfo?: RouteData | null;
 }
 
 // State FIPS to abbreviation mapping
@@ -25,11 +28,22 @@ const stateAbbreviations: { [key: string]: string } = {
   '56': 'WY',
 };
 
-export const USMap = ({ visitedStates, milestones = [] }: USMapProps) => {
+export const USMap = ({ visitedStates, milestones = [], routeInfo }: USMapProps) => {
   const [hoveredMilestone, setHoveredMilestone] = useState<string | null>(null);
 
   // Filter milestones that have coordinates
   const geoMilestones = milestones.filter(m => m.latitude && m.longitude);
+
+  // Convert route coordinates to line segments for react-simple-maps
+  const routeSegments: Array<{ from: [number, number]; to: [number, number] }> = [];
+  if (routeInfo?.coordinates && routeInfo.coordinates.length > 1) {
+    for (let i = 0; i < routeInfo.coordinates.length - 1; i++) {
+      routeSegments.push({
+        from: routeInfo.coordinates[i],
+        to: routeInfo.coordinates[i + 1],
+      });
+    }
+  }
 
   return (
     <motion.div
@@ -37,6 +51,16 @@ export const USMap = ({ visitedStates, milestones = [] }: USMapProps) => {
       animate={{ opacity: 1 }}
       className="w-full aspect-[1.6/1] relative"
     >
+      {/* Route info badge */}
+      {routeInfo && (
+        <div className="absolute top-2 left-2 z-10 bg-card/90 backdrop-blur rounded-lg px-3 py-1.5 flex items-center gap-2">
+          <Navigation className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium">{formatRouteMiles(routeInfo.distance)} mi</span>
+          <span className="text-muted-foreground">•</span>
+          <span className="text-sm text-muted-foreground">{formatRouteDuration(routeInfo.duration)}</span>
+        </div>
+      )}
+
       <ComposableMap
         projection="geoAlbersUsa"
         projectionConfig={{ scale: 1000 }}
@@ -70,6 +94,50 @@ export const USMap = ({ visitedStates, milestones = [] }: USMapProps) => {
             })
           }
         </Geographies>
+
+        {/* Route line segments */}
+        {routeSegments.map((segment, i) => (
+          <Line
+            key={`route-${i}`}
+            from={segment.from}
+            to={segment.to}
+            stroke="hsl(32, 95%, 50%)"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+          />
+        ))}
+
+        {/* Start marker */}
+        {routeInfo?.startPoint && (
+          <Marker coordinates={[routeInfo.startPoint.longitude, routeInfo.startPoint.latitude]}>
+            <circle r={6} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+            <text
+              textAnchor="middle"
+              y={3}
+              fontSize={7}
+              fontWeight="bold"
+              fill="white"
+            >
+              S
+            </text>
+          </Marker>
+        )}
+
+        {/* End marker */}
+        {routeInfo?.endPoint && (
+          <Marker coordinates={[routeInfo.endPoint.longitude, routeInfo.endPoint.latitude]}>
+            <circle r={6} fill="hsl(0, 70%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+            <text
+              textAnchor="middle"
+              y={3}
+              fontSize={7}
+              fontWeight="bold"
+              fill="white"
+            >
+              E
+            </text>
+          </Marker>
+        )}
 
         {/* Milestone Markers */}
         {geoMilestones.map((milestone) => {
