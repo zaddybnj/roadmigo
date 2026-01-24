@@ -47,7 +47,7 @@ export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-card rounded-2xl p-6 z-50 card-elevated"
+            className="fixed inset-x-4 top-4 bottom-4 max-w-md mx-auto bg-card rounded-2xl p-6 z-50 card-elevated overflow-y-auto flex flex-col justify-center"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
