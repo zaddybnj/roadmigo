@@ -2,11 +2,12 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ChevronLeft, MapPin, Calendar, Moon, Heart, 
-  MessageCircle, FileText, Mountain, Lock, Users, Globe, Landmark
+  MessageCircle, FileText, Mountain, Lock, Users, Globe, Landmark, Map, Navigation
 } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import { useSocial } from '@/context/SocialContext';
 import { USMap } from '@/components/USMap';
+import { RouteMap } from '@/components/RouteMap';
 import { CommentSection } from '@/components/CommentSection';
 import { PhotoGallery } from '@/components/PhotoGallery';
 import { ShareMenu } from '@/components/ShareMenu';
@@ -19,9 +20,10 @@ const TripDetailPage = () => {
   const { completedTrips } = useTrip();
   const { isTripLiked, likeTrip, unlikeTrip } = useSocial();
   const [showComments, setShowComments] = useState(false);
-
+  
   const trip = completedTrips.find(t => t.id === id);
   const isLiked = id ? isTripLiked(id) : false;
+  const [mapView, setMapView] = useState<'overview' | 'route'>(trip?.routeInfo ? 'route' : 'overview');
 
   if (!trip) {
     return (
@@ -181,17 +183,58 @@ const TripDetailPage = () => {
           className="bg-card rounded-xl overflow-hidden card-elevated"
         >
           <div className="p-4 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Mountain className="w-5 h-5 text-primary" />
-              <h3 className="font-display font-semibold">Route Map</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mountain className="w-5 h-5 text-primary" />
+                <h3 className="font-display font-semibold">Route Map</h3>
+              </div>
+              
+              {/* Map View Toggle */}
+              {trip.routeInfo && (
+                <div className="flex bg-muted rounded-lg p-0.5">
+                  <button
+                    onClick={() => setMapView('overview')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                      mapView === 'overview' 
+                        ? 'bg-card text-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Map className="w-3.5 h-3.5" />
+                    States
+                  </button>
+                  <button
+                    onClick={() => setMapView('route')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                      mapView === 'route' 
+                        ? 'bg-card text-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    Route
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="p-2">
-            <USMap visitedStates={trip.states} milestones={trip.milestones} />
+            {mapView === 'overview' || !trip.routeInfo ? (
+              <USMap visitedStates={trip.states} milestones={trip.milestones} />
+            ) : (
+              <RouteMap 
+                route={trip.routeInfo} 
+                milestones={trip.milestones} 
+              />
+            )}
           </div>
           <div className="px-4 pb-4">
             <p className="text-xs text-muted-foreground text-center">
-              Visited {trip.states.length} state{trip.states.length !== 1 ? 's' : ''}: {trip.states.join(', ')}
+              {mapView === 'overview' || !trip.routeInfo ? (
+                <>Visited {trip.states.length} state{trip.states.length !== 1 ? 's' : ''}: {trip.states.join(', ')}</>
+              ) : (
+                <>Route from {trip.routeInfo.startPoint.name || 'Start'} to {trip.routeInfo.endPoint.name || 'End'}</>
+              )}
             </p>
           </div>
         </motion.div>
