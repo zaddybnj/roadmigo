@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Milestone, getCategoryInfo } from '@/types/milestone';
 import { RouteData, formatRouteMiles, formatRouteDuration } from '@/lib/routing';
 import { Navigation } from 'lucide-react';
+import { Waypoint } from '@/context/TripContext';
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
 
@@ -11,6 +12,7 @@ interface USMapProps {
   visitedStates: string[];
   milestones?: Milestone[];
   routeInfo?: RouteData | null;
+  activeStops?: Waypoint[]; // For showing stops during an active trip
 }
 
 // State FIPS to abbreviation mapping
@@ -28,8 +30,9 @@ const stateAbbreviations: { [key: string]: string } = {
   '56': 'WY',
 };
 
-export const USMap = ({ visitedStates, milestones = [], routeInfo }: USMapProps) => {
+export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops = [] }: USMapProps) => {
   const [hoveredMilestone, setHoveredMilestone] = useState<string | null>(null);
+  const [hoveredStop, setHoveredStop] = useState<string | null>(null);
 
   // Filter milestones that have coordinates
   const geoMilestones = milestones.filter(m => m.latitude && m.longitude);
@@ -155,6 +158,39 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo }: USMapProps)
           </Marker>
         )}
 
+        {/* Active Trip Stops (during trip, before final route is calculated) */}
+        {activeStops.map((stop, index) => {
+          const isHovered = hoveredStop === stop.id;
+          return (
+            <Marker
+              key={stop.id}
+              coordinates={[stop.lng, stop.lat]}
+            >
+              <g
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={() => setHoveredStop(stop.id)}
+                onMouseLeave={() => setHoveredStop(null)}
+              >
+                <circle 
+                  r={isHovered ? 7 : 6} 
+                  fill="hsl(220, 80%, 55%)" 
+                  stroke="hsl(220, 20%, 15%)" 
+                  strokeWidth={1.5} 
+                />
+                <text
+                  textAnchor="middle"
+                  y={3.5}
+                  fontSize={7}
+                  fontWeight="bold"
+                  fill="white"
+                >
+                  {index + 1}
+                </text>
+              </g>
+            </Marker>
+          );
+        })}
+
         {/* Milestone Markers */}
         {geoMilestones.map((milestone) => {
           const catInfo = getCategoryInfo(milestone.category);
@@ -204,7 +240,10 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo }: USMapProps)
         })}
       </ComposableMap>
 
-      {/* Tooltip overlay */}
+      {/* Stop tooltip overlay */}
+      {hoveredStop && activeStops.length > 0 && (
+        <StopTooltip stop={activeStops.find(s => s.id === hoveredStop)!} />
+      )}
       {hoveredMilestone && (
         <MilestoneTooltip 
           milestone={geoMilestones.find(m => m.id === hoveredMilestone)!}
@@ -214,7 +253,32 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo }: USMapProps)
   );
 };
 
-// Tooltip component
+// Stop tooltip component
+const StopTooltip = ({ stop }: { stop: Waypoint }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
+    >
+      <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 min-w-[160px]">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-primary-foreground text-xs font-bold">📍</span>
+          </div>
+          <div>
+            <p className="font-medium text-sm text-foreground">{stop.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {new Date(stop.timestamp).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Milestone tooltip component
 const MilestoneTooltip = ({ milestone }: { milestone: Milestone }) => {
   const catInfo = getCategoryInfo(milestone.category);
   

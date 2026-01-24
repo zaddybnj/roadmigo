@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Gauge, MapPin, FileText, Image, Plus, Landmark, X } from 'lucide-react';
-import { useTrip } from '@/context/TripContext';
+import { Gauge, MapPin, FileText, Image, Plus, Landmark, X, Navigation, Trash2 } from 'lucide-react';
+import { useTrip, Waypoint } from '@/context/TripContext';
 import {
   Drawer,
   DrawerContent,
@@ -42,7 +42,7 @@ const US_STATES = [
 ];
 
 export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
-  const { activeTrip, updateMiles, addState, updateNotes, addPhoto, addMilestone, removeMilestone } = useTrip();
+  const { activeTrip, updateMiles, addState, updateNotes, addPhoto, addMilestone, removeMilestone, addRouteStop, removeRouteStop } = useTrip();
   const { toast } = useToast();
   const [milesInput, setMilesInput] = useState('');
   const [notesInput, setNotesInput] = useState(activeTrip?.notes || '');
@@ -54,6 +54,10 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
   const [milestoneCategory, setMilestoneCategory] = useState<MilestoneCategory>('national_park');
   const [milestoneNotes, setMilestoneNotes] = useState('');
   const [milestoneCoords, setMilestoneCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Route stop form state
+  const [stopName, setStopName] = useState('');
+  const [stopCoords, setStopCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   if (!activeTrip) return null;
 
@@ -146,6 +150,42 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
     });
   };
 
+  const handleAddRouteStop = async () => {
+    if (!stopName.trim() || !stopCoords) {
+      toast({
+        title: 'Location required',
+        description: 'Please search and select a location for this stop',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const newStop: Waypoint = {
+      id: crypto.randomUUID(),
+      name: stopName.trim(),
+      lat: stopCoords.lat,
+      lng: stopCoords.lng,
+      timestamp: new Date().toISOString(),
+    };
+
+    await addRouteStop(newStop);
+    toast({
+      title: 'Stop added!',
+      description: `📍 ${stopName} added to your route`,
+    });
+    
+    setStopName('');
+    setStopCoords(null);
+  };
+
+  const handleRemoveRouteStop = async (id: string, name: string) => {
+    await removeRouteStop(id);
+    toast({
+      title: 'Stop removed',
+      description: `${name} removed from your route`,
+    });
+  };
+
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent className="max-h-[85vh]">
@@ -158,10 +198,14 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
 
         <div className="px-4 pb-6 overflow-y-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsList className="grid w-full grid-cols-6 mb-4">
               <TabsTrigger value="miles" className="flex items-center gap-1.5 text-xs">
                 <Gauge className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Miles</span>
+              </TabsTrigger>
+              <TabsTrigger value="route" className="flex items-center gap-1.5 text-xs">
+                <Navigation className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Route</span>
               </TabsTrigger>
               <TabsTrigger value="states" className="flex items-center gap-1.5 text-xs">
                 <MapPin className="w-3.5 h-3.5" />
@@ -226,6 +270,83 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
                   </Button>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Route Stops Tab */}
+            <TabsContent value="route" className="space-y-4 mt-0">
+              {/* Current stops */}
+              {activeTrip.waypoints.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Stops logged ({activeTrip.waypoints.length})
+                  </p>
+                  <div className="space-y-2 max-h-[150px] overflow-y-auto">
+                    {activeTrip.waypoints.map((stop, index) => (
+                      <div 
+                        key={stop.id}
+                        className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                          <span className="text-primary-foreground text-xs font-bold">{index + 1}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{stop.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(stop.timestamp).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveRouteStop(stop.id, stop.name)}
+                          className="p-1.5 hover:bg-destructive/20 rounded-full transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add new stop */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-muted-foreground">Add a stop to your route</p>
+                
+                <LocationSearch
+                  value={stopName}
+                  onChange={setStopName}
+                  onLocationSelect={(location) => {
+                    setStopName(location.name);
+                    setStopCoords({ lat: location.latitude, lng: location.longitude });
+                  }}
+                  placeholder="Search for a location..."
+                />
+
+                {stopCoords && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-primary/20 rounded-lg text-sm">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span className="text-primary">📍 Location selected</span>
+                    <button 
+                      onClick={() => { setStopCoords(null); setStopName(''); }}
+                      className="ml-auto text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleAddRouteStop}
+                  className="w-full gradient-sunset"
+                  disabled={!stopName.trim() || !stopCoords}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Stop
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                💡 Stops will appear on your trip map and can be used to calculate your route when you end the trip.
+              </p>
             </TabsContent>
 
             <TabsContent value="states" className="space-y-4 mt-0">
