@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Flag, Lock, Users, Globe, MapPin, Navigation, Loader2 } from 'lucide-react';
-import { useTrip, Trip } from '@/context/TripContext';
+import { X, Flag, Lock, Users, Globe, Navigation, Loader2, Plus, Trash2 } from 'lucide-react';
+import { useTrip } from '@/context/TripContext';
 import { useNavigate } from 'react-router-dom';
 import { LocationSearch } from '@/components/LocationSearch';
-import { fetchRoute, RouteData, formatRouteMiles, formatRouteDuration } from '@/lib/routing';
+import { fetchRoute, RouteData, RoutePoint, formatRouteMiles, formatRouteDuration } from '@/lib/routing';
 import { useToast } from '@/hooks/use-toast';
 
 interface EndTripModalProps {
@@ -19,6 +19,12 @@ interface LocationResult {
   displayName: string;
   latitude: number;
   longitude: number;
+}
+
+interface WaypointInput {
+  id: string;
+  text: string;
+  location: LocationResult | null;
 }
 
 const privacyOptions: { value: Privacy; icon: React.ReactNode; label: string; desc: string }[] = [
@@ -40,10 +46,30 @@ export const EndTripModal = ({ isOpen, onClose }: EndTripModalProps) => {
   const [endLocationText, setEndLocationText] = useState('');
   const [startLocation, setStartLocation] = useState<LocationResult | null>(null);
   const [endLocation, setEndLocation] = useState<LocationResult | null>(null);
+  const [waypoints, setWaypoints] = useState<WaypointInput[]>([]);
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
 
   if (!activeTrip) return null;
+
+  const addWaypoint = () => {
+    setWaypoints(prev => [...prev, { id: crypto.randomUUID(), text: '', location: null }]);
+    setRouteData(null); // Clear route when waypoints change
+  };
+
+  const removeWaypoint = (id: string) => {
+    setWaypoints(prev => prev.filter(w => w.id !== id));
+    setRouteData(null);
+  };
+
+  const updateWaypointText = (id: string, text: string) => {
+    setWaypoints(prev => prev.map(w => w.id === id ? { ...w, text } : w));
+  };
+
+  const updateWaypointLocation = (id: string, location: LocationResult) => {
+    setWaypoints(prev => prev.map(w => w.id === id ? { ...w, location } : w));
+    setRouteData(null);
+  };
 
   const handleFetchRoute = async () => {
     if (!startLocation || !endLocation) {
@@ -55,18 +81,39 @@ export const EndTripModal = ({ isOpen, onClose }: EndTripModalProps) => {
       return;
     }
 
+    // Check if all waypoints have locations selected
+    const incompleteWaypoints = waypoints.filter(w => !w.location);
+    if (incompleteWaypoints.length > 0) {
+      toast({
+        title: 'Incomplete stops',
+        description: 'Please select a location for all stops or remove empty ones',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoadingRoute(true);
     try {
+      const waypointPoints: RoutePoint[] = waypoints
+        .filter(w => w.location)
+        .map(w => ({
+          latitude: w.location!.latitude,
+          longitude: w.location!.longitude,
+          name: w.location!.name,
+        }));
+
       const route = await fetchRoute(
         { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
-        { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name }
+        { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+        waypointPoints
       );
 
       if (route) {
         setRouteData(route);
+        const stopsText = waypointPoints.length > 0 ? ` with ${waypointPoints.length} stop${waypointPoints.length > 1 ? 's' : ''}` : '';
         toast({
           title: 'Route calculated!',
-          description: `${formatRouteMiles(route.distance)} miles via highways`,
+          description: `${formatRouteMiles(route.distance)} miles${stopsText}`,
         });
       } else {
         toast({
@@ -99,6 +146,7 @@ export const EndTripModal = ({ isOpen, onClose }: EndTripModalProps) => {
       );
       setDescription('');
       setRouteData(null);
+      setWaypoints([]);
       onClose();
       navigate(`/trip/${completedTrip.id}`);
     } catch (error) {
@@ -172,31 +220,76 @@ export const EndTripModal = ({ isOpen, onClose }: EndTripModalProps) => {
                   Route (optional)
                 </label>
                 <p className="text-xs text-muted-foreground -mt-1">
-                  Add start and end points to show your route on the map
+                  Add start, stops, and end points to show your route on the map
                 </p>
                 
                 <div className="space-y-2">
+                  {/* Start */}
                   <div className="relative">
-                    <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                    <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
                       <span className="text-primary-foreground text-xs font-bold">S</span>
                     </div>
                     <LocationSearch
                       value={startLocationText}
-                      onChange={setStartLocationText}
-                      onLocationSelect={(loc) => setStartLocation(loc)}
+                      onChange={(v) => { setStartLocationText(v); setRouteData(null); }}
+                      onLocationSelect={(loc) => { setStartLocation(loc); setRouteData(null); }}
                       placeholder="Where did you start?"
                       className="pl-12"
                     />
                   </div>
                   
+                  {/* Waypoints */}
+                  {waypoints.map((waypoint, index) => (
+                    <motion.div
+                      key={waypoint.id}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="relative"
+                    >
+                      <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-accent flex items-center justify-center z-10">
+                        <span className="text-accent-foreground text-xs font-bold">{index + 1}</span>
+                      </div>
+                      <LocationSearch
+                        value={waypoint.text}
+                        onChange={(v) => updateWaypointText(waypoint.id, v)}
+                        onLocationSelect={(loc) => updateWaypointLocation(waypoint.id, loc)}
+                        placeholder={`Stop ${index + 1}`}
+                        className="pl-12 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeWaypoint(waypoint.id)}
+                        className="absolute right-3 top-3 w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors z-10"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </button>
+                    </motion.div>
+                  ))}
+
+                  {/* Add Stop Button */}
+                  {startLocation && (
+                    <motion.button
+                      type="button"
+                      onClick={addWaypoint}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="w-full py-2 rounded-lg border border-dashed border-muted-foreground/30 text-muted-foreground text-sm flex items-center justify-center gap-2 hover:border-primary/50 hover:text-primary transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add a stop
+                    </motion.button>
+                  )}
+                  
+                  {/* End */}
                   <div className="relative">
-                    <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
+                    <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center z-10">
                       <span className="text-secondary-foreground text-xs font-bold">E</span>
                     </div>
                     <LocationSearch
                       value={endLocationText}
-                      onChange={setEndLocationText}
-                      onLocationSelect={(loc) => setEndLocation(loc)}
+                      onChange={(v) => { setEndLocationText(v); setRouteData(null); }}
+                      onLocationSelect={(loc) => { setEndLocation(loc); setRouteData(null); }}
                       placeholder="Where did you end up?"
                       className="pl-12"
                     />

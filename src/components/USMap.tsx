@@ -123,6 +123,22 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo }: USMapProps)
           </Marker>
         )}
 
+        {/* Waypoint markers */}
+        {routeInfo?.waypoints?.map((waypoint, index) => (
+          <Marker key={`waypoint-${index}`} coordinates={[waypoint.longitude, waypoint.latitude]}>
+            <circle r={5} fill="hsl(220, 80%, 60%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+            <text
+              textAnchor="middle"
+              y={3}
+              fontSize={6}
+              fontWeight="bold"
+              fill="white"
+            >
+              {index + 1}
+            </text>
+          </Marker>
+        ))}
+
         {/* End marker */}
         {routeInfo?.endPoint && (
           <Marker coordinates={[routeInfo.endPoint.longitude, routeInfo.endPoint.latitude]}>
