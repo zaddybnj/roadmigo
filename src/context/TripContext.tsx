@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { Milestone } from '@/types/milestone';
+import { RouteData } from '@/lib/routing';
 
 type DbTrip = Tables<'trips'>;
 
@@ -29,6 +30,14 @@ export interface Waypoint {
   timestamp: string;
 }
 
+export interface RouteInfo {
+  coordinates: [number, number][]; // [lng, lat] pairs
+  distance: number; // meters
+  duration: number; // seconds
+  startPoint: { latitude: number; longitude: number; name?: string };
+  endPoint: { latitude: number; longitude: number; name?: string };
+}
+
 export interface Trip {
   id: string;
   userId: string;
@@ -44,6 +53,7 @@ export interface Trip {
   nights: number;
   photos: string[];
   route: [number, number][];
+  routeInfo: RouteInfo | null;
   likes: number;
   comments: number;
   privacy: 'public' | 'friends' | 'private';
@@ -58,7 +68,7 @@ interface TripContextType {
   isTracking: boolean;
   loading: boolean;
   startTrip: (title: string, startLocation: string) => Promise<void>;
-  endTrip: (description: string, privacy: Trip['privacy']) => Promise<Trip>;
+  endTrip: (description: string, privacy: Trip['privacy'], routeData?: RouteData) => Promise<Trip>;
   updateMiles: (miles: number) => Promise<void>;
   addPhoto: (photoUrl: string) => Promise<void>;
   updateNotes: (notes: string) => Promise<void>;
@@ -71,28 +81,52 @@ interface TripContextType {
 const TripContext = createContext<TripContextType | undefined>(undefined);
 
 // Helper to convert DB trip to app Trip format
-const dbTripToTrip = (dbTrip: DbTrip, userName: string, userAvatar: string, isLiked: boolean = false): Trip => ({
-  id: dbTrip.id,
-  userId: dbTrip.user_id,
-  userName,
-  userAvatar,
-  title: dbTrip.title,
-  description: dbTrip.description,
-  notes: dbTrip.notes,
-  startDate: dbTrip.start_date,
-  endDate: dbTrip.end_date,
-  distance: dbTrip.distance || 0,
-  states: dbTrip.states || [],
-  nights: dbTrip.nights || 0,
-  photos: dbTrip.photos || [],
-  route: (dbTrip.route as [number, number][]) || [],
-  likes: dbTrip.likes_count || 0,
-  comments: dbTrip.comments_count || 0,
-  privacy: (dbTrip.privacy as Trip['privacy']) || 'public',
-  isLiked,
-  status: (dbTrip.status as Trip['status']) || 'completed',
-  milestones: ((dbTrip as any).milestones as Milestone[]) || [],
-});
+const dbTripToTrip = (dbTrip: DbTrip, userName: string, userAvatar: string, isLiked: boolean = false): Trip => {
+  // Parse route info from the route JSONB field if it's in new format
+  let routeInfo: RouteInfo | null = null;
+  let legacyRoute: [number, number][] = [];
+  
+  if (dbTrip.route && typeof dbTrip.route === 'object' && !Array.isArray(dbTrip.route)) {
+    // New format with full route data
+    const routeData = dbTrip.route as any;
+    if (routeData.coordinates) {
+      routeInfo = {
+        coordinates: routeData.coordinates,
+        distance: routeData.distance || 0,
+        duration: routeData.duration || 0,
+        startPoint: routeData.startPoint || { latitude: 0, longitude: 0 },
+        endPoint: routeData.endPoint || { latitude: 0, longitude: 0 },
+      };
+    }
+  } else if (Array.isArray(dbTrip.route)) {
+    // Legacy format - just coordinate pairs
+    legacyRoute = dbTrip.route as [number, number][];
+  }
+
+  return {
+    id: dbTrip.id,
+    userId: dbTrip.user_id,
+    userName,
+    userAvatar,
+    title: dbTrip.title,
+    description: dbTrip.description,
+    notes: dbTrip.notes,
+    startDate: dbTrip.start_date,
+    endDate: dbTrip.end_date,
+    distance: dbTrip.distance || 0,
+    states: dbTrip.states || [],
+    nights: dbTrip.nights || 0,
+    photos: dbTrip.photos || [],
+    route: routeInfo?.coordinates || legacyRoute,
+    routeInfo,
+    likes: dbTrip.likes_count || 0,
+    comments: dbTrip.comments_count || 0,
+    privacy: (dbTrip.privacy as Trip['privacy']) || 'public',
+    isLiked,
+    status: (dbTrip.status as Trip['status']) || 'completed',
+    milestones: ((dbTrip as any).milestones as Milestone[]) || [],
+  };
+};
 
 export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile } = useAuth();
@@ -244,11 +278,25 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [user]);
 
-  const endTrip = useCallback(async (description: string, privacy: Trip['privacy']) => {
+  const endTrip = useCallback(async (description: string, privacy: Trip['privacy'], routeData?: RouteData) => {
     if (!activeTrip || !user || !profile) throw new Error('No active trip to end');
 
     const endDate = new Date().toISOString();
     const nights = Math.max(0, activeTrip.daysOnRoad - 1);
+
+    // Build route data - either new format with full info or legacy waypoint format
+    let routePayload: any = activeTrip.waypoints.map(w => [w.lng, w.lat]);
+    
+    if (routeData) {
+      // Store full route info in the new format
+      routePayload = {
+        coordinates: routeData.coordinates,
+        distance: routeData.distance,
+        duration: routeData.duration,
+        startPoint: routeData.startPoint,
+        endPoint: routeData.endPoint,
+      };
+    }
 
     const { data, error } = await supabase
       .from('trips')
@@ -262,7 +310,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         states: activeTrip.statesVisited,
         photos: activeTrip.photos,
         notes: activeTrip.notes,
-        route: activeTrip.waypoints.map(w => [w.lng, w.lat]),
+        route: routePayload,
       })
       .eq('id', activeTrip.id)
       .select()
