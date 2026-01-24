@@ -162,13 +162,13 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
       </div>
 
       {/* Navigation */}
-      <div className="p-6 pb-10 flex items-center justify-between gap-4">
+      <div className="p-6 pb-10 flex items-center justify-center gap-4">
         <Button
           variant="ghost"
           size="lg"
           onClick={prevSlide}
           disabled={currentSlide === 0}
-          className={currentSlide === 0 ? 'invisible' : ''}
+          className={`w-[85px] ${currentSlide === 0 ? 'invisible' : ''}`}
         >
           <ChevronLeft className="w-5 h-5 mr-1" />
           Back
@@ -177,7 +177,7 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
         <Button
           size="lg"
           onClick={nextSlide}
-          className="flex-1 max-w-[200px]"
+          className="w-[200px]"
         >
           {currentSlide === slides.length - 1 ? (
             "Get Started"
@@ -190,7 +190,7 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
         </Button>
 
         {/* Invisible spacer for alignment */}
-        <div className={currentSlide === 0 ? '' : 'w-[85px]'} />
+        <div className="w-[85px]" />
       </div>
     </motion.div>
   );
