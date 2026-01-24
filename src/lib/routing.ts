@@ -12,22 +12,27 @@ export interface RouteData {
   duration: number; // in seconds
   startPoint: RoutePoint;
   endPoint: RoutePoint;
+  waypoints?: RoutePoint[]; // intermediate stops
 }
 
 /**
- * Fetch a driving route between two points using OSRM
+ * Fetch a driving route between multiple points using OSRM
+ * Supports start, end, and optional waypoints in between
  * Returns the route geometry as coordinate pairs
  */
 export async function fetchRoute(
   start: RoutePoint,
-  end: RoutePoint
+  end: RoutePoint,
+  waypoints: RoutePoint[] = []
 ): Promise<RouteData | null> {
   try {
-    // OSRM expects coordinates as lng,lat
-    const startCoord = `${start.longitude},${start.latitude}`;
-    const endCoord = `${end.longitude},${end.latitude}`;
+    // Build coordinate string: start;waypoint1;waypoint2;...;end
+    const allPoints = [start, ...waypoints, end];
+    const coordString = allPoints
+      .map(p => `${p.longitude},${p.latitude}`)
+      .join(';');
     
-    const url = `https://router.project-osrm.org/route/v1/driving/${startCoord};${endCoord}?overview=full&geometries=geojson`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
     
     const response = await fetch(url);
     
@@ -51,6 +56,7 @@ export async function fetchRoute(
       duration: route.duration,
       startPoint: start,
       endPoint: end,
+      waypoints: waypoints.length > 0 ? waypoints : undefined,
     };
   } catch (error) {
     console.error('Error fetching route:', error);

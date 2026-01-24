@@ -36,6 +36,7 @@ export interface RouteInfo {
   duration: number; // seconds
   startPoint: { latitude: number; longitude: number; name?: string };
   endPoint: { latitude: number; longitude: number; name?: string };
+  waypoints?: { latitude: number; longitude: number; name?: string }[]; // intermediate stops
 }
 
 export interface Trip {
@@ -96,6 +97,7 @@ const dbTripToTrip = (dbTrip: DbTrip, userName: string, userAvatar: string, isLi
         duration: routeData.duration || 0,
         startPoint: routeData.startPoint || { latitude: 0, longitude: 0 },
         endPoint: routeData.endPoint || { latitude: 0, longitude: 0 },
+        waypoints: routeData.waypoints,
       };
     }
   } else if (Array.isArray(dbTrip.route)) {
@@ -295,6 +297,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         duration: routeData.duration,
         startPoint: routeData.startPoint,
         endPoint: routeData.endPoint,
+        waypoints: routeData.waypoints,
       };
     }
 
