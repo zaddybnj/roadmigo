@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Flag, Lock, Users, Globe, Navigation, Loader2, Plus, Trash2,
-  Gauge, Landmark, FileText, MapPin
+  Gauge, FileText, MapPin
 } from 'lucide-react';
 import { useTrip, Waypoint } from '@/context/TripContext';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +19,7 @@ interface TripControlsModalProps {
 }
 
 type Privacy = 'public' | 'friends' | 'private';
-type Tab = 'progress' | 'stops' | 'milestones' | 'finish';
+type Tab = 'progress' | 'locations' | 'finish';
 
 interface LocationResult {
   name: string;
@@ -122,6 +122,9 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   const [milestoneCategory, setMilestoneCategory] = useState<MilestoneCategory>('national_park');
   const [milestoneNotes, setMilestoneNotes] = useState('');
   const [milestoneCoords, setMilestoneCoords] = useState<{ lat: number; lng: number } | null>(null);
+  
+  // Locations tab - toggle between stops and spots
+  const [locationMode, setLocationMode] = useState<'stops' | 'spots'>('stops');
   
   // End trip state
   const [description, setDescription] = useState('');
@@ -324,31 +327,32 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
 
   const tabs = [
     { id: 'progress' as Tab, icon: Gauge, label: 'Progress' },
-    { id: 'stops' as Tab, icon: MapPin, label: 'Stops' },
-    { id: 'milestones' as Tab, icon: Landmark, label: 'Spots' },
+    { id: 'locations' as Tab, icon: MapPin, label: 'Locations' },
     { id: 'finish' as Tab, icon: Flag, label: 'Finish' },
   ];
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
           />
           
+          {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-md max-h-[calc(100vh-4rem)] bg-card rounded-2xl z-50 card-elevated flex flex-col overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative w-[calc(100%-2rem)] max-w-md max-h-[85vh] mx-4 bg-card rounded-2xl card-elevated flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
               <div>
                 <h2 className="font-display font-bold text-lg">{activeTrip.title}</h2>
                 <p className="text-xs text-muted-foreground">
@@ -364,7 +368,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex border-b border-border">
+            <div className="flex border-b border-border flex-shrink-0">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -382,7 +386,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 min-h-0">
               {/* Progress Tab */}
               {activeTab === 'progress' && (
                 <div className="space-y-6">
@@ -450,190 +454,212 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                 </div>
               )}
 
-              {/* Stops Tab */}
-              {activeTab === 'stops' && (
-                <div className="space-y-6">
-                  <p className="text-sm text-muted-foreground">
-                    Log the places you've stopped. These will be used to calculate your final route.
-                  </p>
-                  
-                  {/* Current stops */}
-                  {activeTrip.waypoints.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">
-                        Your stops ({activeTrip.waypoints.length})
-                      </p>
-                      <div className="space-y-2">
-                        {activeTrip.waypoints.map((stop, index) => (
-                          <div 
-                            key={stop.id}
-                            className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl"
-                          >
-                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                              <span className="text-primary-foreground text-sm font-bold">{index + 1}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{stop.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(stop.timestamp).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => handleRemoveRouteStop(stop.id, stop.name)}
-                              className="p-2 hover:bg-destructive/20 rounded-full transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 text-muted-foreground" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Add new stop */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Add a stop</p>
-                    
-                    <LocationSearch
-                      value={stopName}
-                      onChange={setStopName}
-                      onLocationSelect={(location) => {
-                        setStopName(location.name);
-                        setStopCoords({ lat: location.latitude, lng: location.longitude });
-                      }}
-                      placeholder="Search for a location..."
-                    />
-
-                    {stopCoords && (
-                      <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 rounded-xl">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        <span className="text-sm text-primary font-medium">Location selected</span>
-                        <button 
-                          onClick={() => { setStopCoords(null); setStopName(''); }}
-                          className="ml-auto text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    <Button 
-                      onClick={handleAddRouteStop}
-                      className="w-full gradient-sunset h-12 text-base"
-                      disabled={!stopName.trim() || !stopCoords}
+              {/* Locations Tab (Combined Stops + Spots) */}
+              {activeTab === 'locations' && (
+                <div className="space-y-4">
+                  {/* Mode Toggle */}
+                  <div className="flex bg-muted rounded-xl p-1">
+                    <button
+                      onClick={() => setLocationMode('stops')}
+                      className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                        locationMode === 'stops'
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
                     >
-                      <Plus className="w-5 h-5 mr-2" />
-                      Add Stop
-                    </Button>
+                      <span className="flex items-center justify-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        Stops ({activeTrip.waypoints.length})
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setLocationMode('spots')}
+                      className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                        locationMode === 'spots'
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        ⭐
+                        Spots ({activeTrip.milestones.length})
+                      </span>
+                    </button>
                   </div>
-                </div>
-              )}
 
-              {/* Milestones Tab */}
-              {activeTab === 'milestones' && (
-                <div className="space-y-6">
-                  <p className="text-sm text-muted-foreground">
-                    Mark notable locations like parks, attractions, or memorable spots.
-                  </p>
-                  
-                  {/* Current milestones */}
-                  {activeTrip.milestones.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">
-                        Your spots ({activeTrip.milestones.length})
+                  {/* Stops Mode */}
+                  {locationMode === 'stops' && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Log places you've stopped. Used to calculate your final route.
                       </p>
-                      <div className="space-y-2">
-                        {activeTrip.milestones.map((milestone) => {
-                          const catInfo = getCategoryInfo(milestone.category);
-                          return (
+                      
+                      {/* Current stops */}
+                      {activeTrip.waypoints.length > 0 && (
+                        <div className="space-y-2">
+                          {activeTrip.waypoints.map((stop, index) => (
                             <div 
-                              key={milestone.id}
+                              key={stop.id}
                               className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl"
                             >
-                              <span className="text-2xl">{catInfo.icon}</span>
+                              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                                <span className="text-primary-foreground text-sm font-bold">{index + 1}</span>
+                              </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{milestone.name}</p>
-                                <p className="text-xs text-muted-foreground">{catInfo.label}</p>
+                                <p className="font-medium truncate">{stop.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(stop.timestamp).toLocaleDateString()}
+                                </p>
                               </div>
                               <button
-                                onClick={() => handleRemoveMilestone(milestone.id, milestone.name)}
+                                onClick={() => handleRemoveRouteStop(stop.id, stop.name)}
                                 className="p-2 hover:bg-destructive/20 rounded-full transition-colors"
                               >
                                 <Trash2 className="w-4 h-4 text-muted-foreground" />
                               </button>
                             </div>
-                          );
-                        })}
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add new stop */}
+                      <div className="space-y-3 pt-2 border-t border-border">
+                        <p className="text-sm font-medium">Add a stop</p>
+                        
+                        <LocationSearch
+                          value={stopName}
+                          onChange={setStopName}
+                          onLocationSelect={(location) => {
+                            setStopName(location.name);
+                            setStopCoords({ lat: location.latitude, lng: location.longitude });
+                          }}
+                          placeholder="Search for a location..."
+                        />
+
+                        {stopCoords && (
+                          <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 rounded-xl">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <span className="text-sm text-primary font-medium">Location selected</span>
+                            <button 
+                              onClick={() => { setStopCoords(null); setStopName(''); }}
+                              className="ml-auto text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+
+                        <Button 
+                          onClick={handleAddRouteStop}
+                          className="w-full gradient-sunset h-12 text-base"
+                          disabled={!stopName.trim() || !stopCoords}
+                        >
+                          <Plus className="w-5 h-5 mr-2" />
+                          Add Stop
+                        </Button>
                       </div>
                     </div>
                   )}
 
-                  {/* Add new milestone */}
-                  <div className="space-y-4">
-                    <p className="text-sm font-medium">Add a notable spot</p>
-                    
-                    {/* Category */}
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Type</p>
-                      <div className="flex flex-wrap gap-2">
-                        {MILESTONE_CATEGORIES.map((cat) => (
-                          <button
-                            key={cat.value}
-                            onClick={() => setMilestoneCategory(cat.value)}
-                            className={`px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-colors ${
-                              milestoneCategory === cat.value
-                                ? 'bg-primary/20 border-2 border-primary text-primary'
-                                : 'bg-muted border-2 border-transparent hover:border-muted-foreground/20'
-                            }`}
-                          >
-                            <span>{cat.icon}</span>
-                            <span>{cat.label}</span>
-                          </button>
-                        ))}
+                  {/* Spots Mode */}
+                  {locationMode === 'spots' && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Mark notable locations like parks, attractions, or memorable places.
+                      </p>
+                      
+                      {/* Current spots */}
+                      {activeTrip.milestones.length > 0 && (
+                        <div className="space-y-2">
+                          {activeTrip.milestones.map((milestone) => {
+                            const catInfo = getCategoryInfo(milestone.category);
+                            return (
+                              <div 
+                                key={milestone.id}
+                                className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl"
+                              >
+                                <span className="text-2xl">{catInfo.icon}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{milestone.name}</p>
+                                  <p className="text-xs text-muted-foreground">{catInfo.label}</p>
+                                </div>
+                                <button
+                                  onClick={() => handleRemoveMilestone(milestone.id, milestone.name)}
+                                  className="p-2 hover:bg-destructive/20 rounded-full transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4 text-muted-foreground" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Add new spot */}
+                      <div className="space-y-3 pt-2 border-t border-border">
+                        <p className="text-sm font-medium">Add a notable spot</p>
+                        
+                        {/* Category */}
+                        <div className="flex flex-wrap gap-2">
+                          {MILESTONE_CATEGORIES.map((cat) => (
+                            <button
+                              key={cat.value}
+                              onClick={() => setMilestoneCategory(cat.value)}
+                              className={`px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-colors ${
+                                milestoneCategory === cat.value
+                                  ? 'bg-primary/20 border-2 border-primary text-primary'
+                                  : 'bg-muted border-2 border-transparent hover:border-muted-foreground/20'
+                              }`}
+                            >
+                              <span>{cat.icon}</span>
+                              <span>{cat.label}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Location search */}
+                        <LocationSearch
+                          value={milestoneName}
+                          onChange={setMilestoneName}
+                          onLocationSelect={(location) => {
+                            setMilestoneName(location.name);
+                            setMilestoneCoords({ lat: location.latitude, lng: location.longitude });
+                          }}
+                          placeholder="Search or type location name..."
+                        />
+
+                        {milestoneCoords && (
+                          <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 rounded-xl">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <span className="text-sm text-primary font-medium">Will appear on map</span>
+                            <button 
+                              onClick={() => setMilestoneCoords(null)}
+                              className="ml-auto text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Optional notes */}
+                        <Input
+                          value={milestoneNotes}
+                          onChange={(e) => setMilestoneNotes(e.target.value)}
+                          placeholder="Quick note (optional)..."
+                          className="h-12"
+                        />
+
+                        <Button 
+                          onClick={handleAddMilestone}
+                          className="w-full gradient-sunset h-12 text-base"
+                          disabled={!milestoneName.trim()}
+                        >
+                          <Plus className="w-5 h-5 mr-2" />
+                          Add Spot
+                        </Button>
                       </div>
                     </div>
-
-                    {/* Location search */}
-                    <LocationSearch
-                      value={milestoneName}
-                      onChange={setMilestoneName}
-                      onLocationSelect={(location) => {
-                        setMilestoneName(location.name);
-                        setMilestoneCoords({ lat: location.latitude, lng: location.longitude });
-                      }}
-                      placeholder="Search or type location name..."
-                    />
-
-                    {milestoneCoords && (
-                      <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 rounded-xl">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        <span className="text-sm text-primary font-medium">Will appear on map</span>
-                        <button 
-                          onClick={() => setMilestoneCoords(null)}
-                          className="ml-auto text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Optional notes */}
-                    <Input
-                      value={milestoneNotes}
-                      onChange={(e) => setMilestoneNotes(e.target.value)}
-                      placeholder="Quick note (optional)..."
-                      className="h-12"
-                    />
-
-                    <Button 
-                      onClick={handleAddMilestone}
-                      className="w-full gradient-sunset h-12 text-base"
-                      disabled={!milestoneName.trim()}
-                    >
-                      <Plus className="w-5 h-5 mr-2" />
-                      Add Spot
-                    </Button>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -805,7 +831,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
               )}
             </div>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );
