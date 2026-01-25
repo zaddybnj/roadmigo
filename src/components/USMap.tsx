@@ -48,6 +48,17 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
     }
   }
 
+  // Create line segments between active stops (during active trip, before final route)
+  const activeStopSegments: Array<{ from: [number, number]; to: [number, number] }> = [];
+  if (activeStops.length > 1 && routeSegments.length === 0) {
+    for (let i = 0; i < activeStops.length - 1; i++) {
+      activeStopSegments.push({
+        from: [activeStops[i].lng, activeStops[i].lat],
+        to: [activeStops[i + 1].lng, activeStops[i + 1].lat],
+      });
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -97,6 +108,19 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
             })
           }
         </Geographies>
+
+        {/* Active trip stop connection lines (dashed preview) */}
+        {activeStopSegments.map((segment, i) => (
+          <Line
+            key={`active-stop-${i}`}
+            from={segment.from}
+            to={segment.to}
+            stroke="hsl(220, 80%, 55%)"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeDasharray="6 4"
+          />
+        ))}
 
         {/* Route line segments */}
         {routeSegments.map((segment, i) => (
