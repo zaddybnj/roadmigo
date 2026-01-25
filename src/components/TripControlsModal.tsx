@@ -345,7 +345,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-x-4 top-4 bottom-4 max-w-md mx-auto bg-card rounded-2xl z-50 card-elevated flex flex-col overflow-hidden"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-md max-h-[calc(100vh-4rem)] bg-card rounded-2xl z-50 card-elevated flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
