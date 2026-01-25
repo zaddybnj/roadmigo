@@ -69,7 +69,7 @@ interface TripContextType {
   isTracking: boolean;
   loading: boolean;
   startTrip: (title: string, startLocation: string) => Promise<void>;
-  endTrip: (description: string, privacy: Trip['privacy'], routeData?: RouteData) => Promise<Trip>;
+  endTrip: (description: string, privacy: Trip['privacy'], routeData?: RouteData, derivedStates?: string[]) => Promise<Trip>;
   updateMiles: (miles: number) => Promise<void>;
   addPhoto: (photoUrl: string) => Promise<void>;
   updateNotes: (notes: string) => Promise<void>;
@@ -291,7 +291,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [user]);
 
-  const endTrip = useCallback(async (description: string, privacy: Trip['privacy'], routeData?: RouteData) => {
+  const endTrip = useCallback(async (description: string, privacy: Trip['privacy'], routeData?: RouteData, derivedStates?: string[]) => {
     if (!activeTrip || !user || !profile) throw new Error('No active trip to end');
 
     const endDate = new Date().toISOString();
@@ -312,6 +312,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
+    // Use derived states from route if provided, otherwise use manually logged states
+    const finalStates = derivedStates && derivedStates.length > 0 
+      ? derivedStates 
+      : activeTrip.statesVisited;
+
     const { data, error } = await supabase
       .from('trips')
       .update({
@@ -321,7 +326,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: 'completed',
         distance: activeTrip.currentMiles,
         nights,
-        states: activeTrip.statesVisited,
+        states: finalStates,
         photos: activeTrip.photos,
         notes: activeTrip.notes,
         route: routePayload,
