@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Clock, MapPin, Gauge, FileText, 
-  Flag, ChevronLeft, Zap, Mountain, Landmark
+  ChevronLeft, Settings, Mountain, Landmark
 } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import { useNavigate } from 'react-router-dom';
-import { UpdateTripModal } from '@/components/UpdateTripModal';
-import { EndTripModal } from '@/components/EndTripModal';
+import { TripControlsModal } from '@/components/TripControlsModal';
 import { USMap } from '@/components/USMap';
 import { PhotoGallery } from '@/components/PhotoGallery';
 import { PhotoUploader } from '@/components/PhotoUploader';
@@ -16,8 +15,7 @@ import { getCategoryInfo } from '@/types/milestone';
 const ActiveTripPage = () => {
   const { activeTrip, isTracking, addPhoto } = useTrip();
   const navigate = useNavigate();
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showEndModal, setShowEndModal] = useState(false);
+  const [showControlsModal, setShowControlsModal] = useState(false);
 
   if (!isTracking || !activeTrip) {
     return (
@@ -248,32 +246,25 @@ const ActiveTripPage = () => {
         )}
       </main>
 
-      {/* Bottom Action Buttons */}
+      {/* Bottom Action Button */}
       <div className="fixed bottom-20 left-0 right-0 px-4 safe-bottom">
-        <div className="flex gap-3 max-w-lg mx-auto">
+        <div className="max-w-lg mx-auto">
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => setShowUpdateModal(true)}
-            className="flex-1 py-4 rounded-xl gradient-sunset text-primary-foreground font-display font-semibold glow-primary flex items-center justify-center gap-2"
+            onClick={() => setShowControlsModal(true)}
+            className="w-full py-4 rounded-xl gradient-sunset text-primary-foreground font-display font-semibold glow-primary flex items-center justify-center gap-2"
           >
-            <Zap className="w-5 h-5" />
-            Update Trip
-          </motion.button>
-          
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowEndModal(true)}
-            className="py-4 px-6 rounded-xl bg-card border border-border text-foreground font-display font-semibold flex items-center justify-center gap-2"
-          >
-            <Flag className="w-5 h-5" />
-            End
+            <Settings className="w-5 h-5" />
+            Trip Controls
           </motion.button>
         </div>
       </div>
 
-      {/* Modals */}
-      <UpdateTripModal isOpen={showUpdateModal} onClose={() => setShowUpdateModal(false)} />
-      <EndTripModal isOpen={showEndModal} onClose={() => setShowEndModal(false)} />
+      {/* Modal */}
+      <TripControlsModal 
+        isOpen={showControlsModal} 
+        onClose={() => setShowControlsModal(false)} 
+      />
     </div>
   );
 };
