@@ -51,7 +51,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isLoading, setIsLoading] = useState(true);
 
   const checkSubscription = useCallback(async () => {
-    if (!session?.access_token) {
+    // Get fresh session to avoid race conditions with token refresh
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    
+    if (!currentSession?.access_token) {
       setSubscriptionData({
         subscribed: false,
         product_id: null,
@@ -67,11 +70,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsLoading(true);
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${currentSession.access_token}`,
         },
       });
 
       if (error) {
+        // Silently ignore token expiry errors - token refresh will handle it
+        if (error.message?.includes('expired') || error.message?.includes('invalid JWT')) {
+          console.log('Token expired during subscription check, will retry after refresh');
+          return;
+        }
         console.error('Error checking subscription:', error);
         return;
       }
@@ -82,7 +90,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setIsLoading(false);
     }
-  }, [session?.access_token]);
+  }, []);
 
   // Check subscription on mount and when session changes
   useEffect(() => {
