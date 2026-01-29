@@ -325,393 +325,369 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
             {/* Content - Single Scrollable View */}
             <div className="flex-1 overflow-y-auto p-4 min-h-0 space-y-6">
               {/* Route Tab (Combined Route + Finish) */}
-              {activeTab === 'route' && (
-                <div className="space-y-6">
-                  {/* Trip Summary */}
-                  <div className="bg-muted/50 rounded-xl p-4">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <p className="font-display text-2xl font-bold text-primary">
-                          {routeData ? formatRouteMiles(routeData.distance).toLocaleString() : activeTrip.currentMiles.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Miles</p>
-                      </div>
-                      <div>
-                        <p className="font-display text-2xl font-bold">{activeTrip.daysOnRoad}</p>
-                        <p className="text-xs text-muted-foreground">Days</p>
-                      </div>
-                      <div>
-                        <p className="font-display text-2xl font-bold text-secondary">{activeTrip.waypoints.length}</p>
-                        <p className="text-xs text-muted-foreground">Stops</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Route Section */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Calculate your route</p>
-                    <p className="text-xs text-muted-foreground">
-                      Set start and end points. Stops logged in Locations will be included automatically.
+              {/* Trip Summary */}
+              <div className="bg-muted/50 rounded-xl p-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="font-display text-2xl font-bold text-primary">
+                      {routeData ? formatRouteMiles(routeData.distance).toLocaleString() : activeTrip.currentMiles.toLocaleString()}
                     </p>
-                    
-                    {/* Start */}
-                    <div className="relative">
-                      <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
-                        <span className="text-primary-foreground text-xs font-bold">S</span>
-                      </div>
-                      <LocationSearch
-                        value={startLocationText}
-                        onChange={(v) => { setStartLocationText(v); setRouteData(null); }}
-                        onLocationSelect={(loc) => { setStartLocation(loc); setRouteData(null); }}
-                        placeholder="Where did you start?"
-                        className="pl-12"
-                      />
-                    </div>
-
-                    {/* Show logged stops */}
-                    {activeTrip.waypoints.length > 0 && (
-                      <div className="pl-12 py-2 text-sm text-muted-foreground">
-                        + {activeTrip.waypoints.length} logged stop{activeTrip.waypoints.length > 1 ? 's' : ''} will be included
-                      </div>
-                    )}
-                    
-                    {/* End */}
-                    <div className="relative">
-                      <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center z-10">
-                        <span className="text-secondary-foreground text-xs font-bold">E</span>
-                      </div>
-                      <LocationSearch
-                        value={endLocationText}
-                        onChange={(v) => { setEndLocationText(v); setRouteData(null); }}
-                        onLocationSelect={(loc) => { setEndLocation(loc); setRouteData(null); }}
-                        placeholder="Where did you end up?"
-                        className="pl-12"
-                      />
-                    </div>
-
-                    {startLocation && endLocation && !routeData && (
-                      <Button
-                        variant="outline"
-                        onClick={handleFetchRoute}
-                        disabled={isLoadingRoute}
-                        className="w-full h-12"
-                      >
-                        {isLoadingRoute ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Calculating...
-                          </>
-                        ) : (
-                          <>
-                            <Navigation className="w-4 h-4 mr-2" />
-                            Update Route
-                          </>
-                        )}
-                      </Button>
-                    )}
-
-                    {routeData && (
-                      <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Navigation className="w-4 h-4 text-secondary" />
-                            <span className="font-medium text-secondary">Route ready!</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setRouteData(null)}
-                            className="text-xs text-muted-foreground"
-                          >
-                            Recalculate
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{formatRouteMiles(routeData.distance)} miles</span>
-                          <span>•</span>
-                          <span>{formatRouteDuration(routeData.duration)}</span>
-                        </div>
-                        {derivedStates.length > 0 && (
-                          <div className="flex flex-wrap gap-1 pt-2">
-                            {derivedStates.map(state => (
-                              <span key={state} className="px-2 py-1 bg-secondary/20 text-secondary text-xs rounded-full">
-                                {state}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <p className="text-xs text-muted-foreground">Miles</p>
                   </div>
-
-                  {/* Description */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Share your story</p>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Tell us about your journey..."
-                      rows={3}
-                      className="w-full px-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-base"
-                    />
+                  <div>
+                    <p className="font-display text-2xl font-bold">{activeTrip.daysOnRoad}</p>
+                    <p className="text-xs text-muted-foreground">Days</p>
                   </div>
-
-                  {/* Privacy */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Who can see this?</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {privacyOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setPrivacy(option.value)}
-                          className={`p-3 rounded-xl text-center transition-all ${
-                            privacy === option.value
-                              ? 'bg-primary/20 border-2 border-primary'
-                              : 'bg-muted border-2 border-transparent hover:border-muted-foreground/20'
-                          }`}
-                        >
-                          <div className={`mx-auto mb-1 ${privacy === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
-                            {option.icon}
-                          </div>
-                          <p className={`text-sm font-medium ${privacy === option.value ? 'text-primary' : 'text-foreground'}`}>
-                            {option.label}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
+                  <div>
+                    <p className="font-display text-2xl font-bold text-secondary">{activeTrip.waypoints.length}</p>
+                    <p className="text-xs text-muted-foreground">Stops</p>
                   </div>
+                </div>
+              </div>
 
-                  {/* Submit */}
+              {/* Route Section */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Calculate your route</p>
+                <p className="text-xs text-muted-foreground">
+                  Set start and end points. Stops you've logged will be included automatically.
+                </p>
+                
+                {/* Start */}
+                <div className="relative">
+                  <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
+                    <span className="text-primary-foreground text-xs font-bold">S</span>
+                  </div>
+                  <LocationSearch
+                    value={startLocationText}
+                    onChange={(v) => { setStartLocationText(v); setRouteData(null); }}
+                    onLocationSelect={(loc) => { setStartLocation(loc); setRouteData(null); }}
+                    placeholder="Where did you start?"
+                    className="pl-12"
+                  />
+                </div>
+
+                {/* Show logged stops */}
+                {activeTrip.waypoints.length > 0 && (
+                  <div className="pl-12 py-2 text-sm text-muted-foreground">
+                    + {activeTrip.waypoints.length} logged stop{activeTrip.waypoints.length > 1 ? 's' : ''} will be included
+                  </div>
+                )}
+                
+                {/* End */}
+                <div className="relative">
+                  <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center z-10">
+                    <span className="text-secondary-foreground text-xs font-bold">E</span>
+                  </div>
+                  <LocationSearch
+                    value={endLocationText}
+                    onChange={(v) => { setEndLocationText(v); setRouteData(null); }}
+                    onLocationSelect={(loc) => { setEndLocation(loc); setRouteData(null); }}
+                    placeholder="Where did you end up?"
+                    className="pl-12"
+                  />
+                </div>
+
+                {startLocation && endLocation && !routeData && (
                   <Button
-                    onClick={handleEndTrip}
-                    disabled={isSubmitting}
-                    className="w-full h-14 gradient-forest text-base font-display font-semibold"
+                    variant="outline"
+                    onClick={handleFetchRoute}
+                    disabled={isLoadingRoute}
+                    className="w-full h-12"
                   >
-                    {isSubmitting ? (
+                    {isLoadingRoute ? (
                       <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Saving...
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Calculating...
                       </>
                     ) : (
                       <>
-                        <Flag className="w-5 h-5 mr-2" />
-                        Complete Trip
+                        <Navigation className="w-4 h-4 mr-2" />
+                        Update Route
                       </>
                     )}
                   </Button>
-                </div>
-              )}
+                )}
 
-              {/* Locations Tab (Combined Stops + Spots) */}
-              {activeTab === 'locations' && (
-                <div className="space-y-4">
-                  {/* Mode Toggle */}
-                  <div className="flex bg-muted rounded-xl p-1">
-                    <button
-                      onClick={() => setLocationMode('stops')}
-                      className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                        locationMode === 'stops'
-                          ? 'bg-card text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Stops ({activeTrip.waypoints.length})
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setLocationMode('spots')}
-                      className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                        locationMode === 'spots'
-                          ? 'bg-card text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        ⭐
-                        Spots ({activeTrip.milestones.length})
-                      </span>
-                    </button>
+                {routeData && (
+                  <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Navigation className="w-4 h-4 text-secondary" />
+                        <span className="font-medium text-secondary">Route ready!</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRouteData(null)}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Recalculate
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>{formatRouteMiles(routeData.distance)} miles</span>
+                      <span>•</span>
+                      <span>{formatRouteDuration(routeData.duration)}</span>
+                    </div>
+                    {derivedStates.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-2">
+                        {derivedStates.map(state => (
+                          <span key={state} className="px-2 py-1 bg-secondary/20 text-secondary text-xs rounded-full">
+                            {state}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                )}
+              </div>
 
-                  {/* Stops Mode */}
-                  {locationMode === 'stops' && (
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Log places you've stopped. Used to calculate your final route.
-                      </p>
-                      
-                      {/* Current stops */}
-                      {activeTrip.waypoints.length > 0 && (
-                        <div className="space-y-2">
-                          {activeTrip.waypoints.map((stop, index) => (
-                            <div 
-                              key={stop.id}
-                              className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl"
-                            >
-                              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                                <span className="text-primary-foreground text-sm font-bold">{index + 1}</span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{stop.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(stop.timestamp).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleRemoveRouteStop(stop.id, stop.name)}
-                                className="p-2 hover:bg-destructive/20 rounded-full transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4 text-muted-foreground" />
-                              </button>
+              {/* Stops Collapsible Section */}
+              <Collapsible open={showStops} onOpenChange={setShowStops}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Stops</span>
+                    <span className="text-sm text-muted-foreground">({activeTrip.waypoints.length})</span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showStops ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Log places you've stopped. Used to calculate your final route.
+                  </p>
+                  
+                  {/* Current stops */}
+                  {activeTrip.waypoints.length > 0 && (
+                    <div className="space-y-2">
+                      {activeTrip.waypoints.map((stop, index) => (
+                        <div 
+                          key={stop.id}
+                          className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                            <span className="text-primary-foreground text-sm font-bold">{index + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{stop.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(stop.timestamp).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveRouteStop(stop.id, stop.name)}
+                            className="p-2 hover:bg-destructive/20 rounded-full transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add new stop */}
+                  <div className="space-y-3 pt-2 border-t border-border">
+                    <p className="text-sm font-medium">Add a stop</p>
+                    
+                    <LocationSearch
+                      value={stopName}
+                      onChange={setStopName}
+                      onLocationSelect={(location) => {
+                        setStopName(location.name);
+                        setStopCoords({ lat: location.latitude, lng: location.longitude });
+                      }}
+                      placeholder="Search for a location..."
+                    />
+
+                    {stopCoords && (
+                      <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 rounded-xl">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <span className="text-sm text-primary font-medium">Location selected</span>
+                        <button 
+                          onClick={() => { setStopCoords(null); setStopName(''); }}
+                          className="ml-auto text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    <Button 
+                      onClick={handleAddRouteStop}
+                      className="w-full gradient-sunset h-12 text-base"
+                      disabled={!stopName.trim() || !stopCoords}
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      Add Stop
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Spots Collapsible Section */}
+              <Collapsible open={showSpots} onOpenChange={setShowSpots}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
+                  <div className="flex items-center gap-2">
+                    <span>⭐</span>
+                    <span className="font-medium">Notable Spots</span>
+                    <span className="text-sm text-muted-foreground">({activeTrip.milestones.length})</span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showSpots ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Mark notable locations like parks, attractions, or memorable places.
+                  </p>
+                  
+                  {/* Current spots */}
+                  {activeTrip.milestones.length > 0 && (
+                    <div className="space-y-2">
+                      {activeTrip.milestones.map((milestone) => {
+                        const catInfo = getCategoryInfo(milestone.category);
+                        return (
+                          <div 
+                            key={milestone.id}
+                            className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl"
+                          >
+                            <span className="text-2xl">{catInfo.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{milestone.name}</p>
+                              <p className="text-xs text-muted-foreground">{catInfo.label}</p>
                             </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Add new stop */}
-                      <div className="space-y-3 pt-2 border-t border-border">
-                        <p className="text-sm font-medium">Add a stop</p>
-                        
-                        <LocationSearch
-                          value={stopName}
-                          onChange={setStopName}
-                          onLocationSelect={(location) => {
-                            setStopName(location.name);
-                            setStopCoords({ lat: location.latitude, lng: location.longitude });
-                          }}
-                          placeholder="Search for a location..."
-                        />
-
-                        {stopCoords && (
-                          <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 rounded-xl">
-                            <MapPin className="w-4 h-4 text-primary" />
-                            <span className="text-sm text-primary font-medium">Location selected</span>
-                            <button 
-                              onClick={() => { setStopCoords(null); setStopName(''); }}
-                              className="ml-auto text-muted-foreground hover:text-foreground"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-
-                        <Button 
-                          onClick={handleAddRouteStop}
-                          className="w-full gradient-sunset h-12 text-base"
-                          disabled={!stopName.trim() || !stopCoords}
-                        >
-                          <Plus className="w-5 h-5 mr-2" />
-                          Add Stop
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Spots Mode */}
-                  {locationMode === 'spots' && (
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Mark notable locations like parks, attractions, or memorable places.
-                      </p>
-                      
-                      {/* Current spots */}
-                      {activeTrip.milestones.length > 0 && (
-                        <div className="space-y-2">
-                          {activeTrip.milestones.map((milestone) => {
-                            const catInfo = getCategoryInfo(milestone.category);
-                            return (
-                              <div 
-                                key={milestone.id}
-                                className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl"
-                              >
-                                <span className="text-2xl">{catInfo.icon}</span>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium truncate">{milestone.name}</p>
-                                  <p className="text-xs text-muted-foreground">{catInfo.label}</p>
-                                </div>
-                                <button
-                                  onClick={() => handleRemoveMilestone(milestone.id, milestone.name)}
-                                  className="p-2 hover:bg-destructive/20 rounded-full transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4 text-muted-foreground" />
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Add new spot */}
-                      <div className="space-y-3 pt-2 border-t border-border">
-                        <p className="text-sm font-medium">Add a notable spot</p>
-                        
-                        {/* Category */}
-                        <div className="flex flex-wrap gap-2">
-                          {MILESTONE_CATEGORIES.map((cat) => (
                             <button
-                              key={cat.value}
-                              onClick={() => setMilestoneCategory(cat.value)}
-                              className={`px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-colors ${
-                                milestoneCategory === cat.value
-                                  ? 'bg-primary/20 border-2 border-primary text-primary'
-                                  : 'bg-muted border-2 border-transparent hover:border-muted-foreground/20'
-                              }`}
+                              onClick={() => handleRemoveMilestone(milestone.id, milestone.name)}
+                              className="p-2 hover:bg-destructive/20 rounded-full transition-colors"
                             >
-                              <span>{cat.icon}</span>
-                              <span>{cat.label}</span>
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Location search */}
-                        <LocationSearch
-                          value={milestoneName}
-                          onChange={setMilestoneName}
-                          onLocationSelect={(location) => {
-                            setMilestoneName(location.name);
-                            setMilestoneCoords({ lat: location.latitude, lng: location.longitude });
-                          }}
-                          placeholder="Search or type location name..."
-                        />
-
-                        {milestoneCoords && (
-                          <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 rounded-xl">
-                            <MapPin className="w-4 h-4 text-primary" />
-                            <span className="text-sm text-primary font-medium">Will appear on map</span>
-                            <button 
-                              onClick={() => setMilestoneCoords(null)}
-                              className="ml-auto text-muted-foreground hover:text-foreground"
-                            >
-                              <X className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4 text-muted-foreground" />
                             </button>
                           </div>
-                        )}
-
-                        {/* Optional notes */}
-                        <Input
-                          value={milestoneNotes}
-                          onChange={(e) => setMilestoneNotes(e.target.value)}
-                          placeholder="Quick note (optional)..."
-                          className="h-12"
-                        />
-
-                        <Button 
-                          onClick={handleAddMilestone}
-                          className="w-full gradient-sunset h-12 text-base"
-                          disabled={!milestoneName.trim()}
-                        >
-                          <Plus className="w-5 h-5 mr-2" />
-                          Add Spot
-                        </Button>
-                      </div>
+                        );
+                      })}
                     </div>
                   )}
-                </div>
-              )}
 
+                  {/* Add new spot */}
+                  <div className="space-y-3 pt-2 border-t border-border">
+                    <p className="text-sm font-medium">Add a notable spot</p>
+                    
+                    {/* Category */}
+                    <div className="flex flex-wrap gap-2">
+                      {MILESTONE_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.value}
+                          onClick={() => setMilestoneCategory(cat.value)}
+                          className={`px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-colors ${
+                            milestoneCategory === cat.value
+                              ? 'bg-primary/20 border-2 border-primary text-primary'
+                              : 'bg-muted border-2 border-transparent hover:border-muted-foreground/20'
+                          }`}
+                        >
+                          <span>{cat.icon}</span>
+                          <span>{cat.label}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Location search */}
+                    <LocationSearch
+                      value={milestoneName}
+                      onChange={setMilestoneName}
+                      onLocationSelect={(location) => {
+                        setMilestoneName(location.name);
+                        setMilestoneCoords({ lat: location.latitude, lng: location.longitude });
+                      }}
+                      placeholder="Search or type location name..."
+                    />
+
+                    {milestoneCoords && (
+                      <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 rounded-xl">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <span className="text-sm text-primary font-medium">Will appear on map</span>
+                        <button 
+                          onClick={() => setMilestoneCoords(null)}
+                          className="ml-auto text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Optional notes */}
+                    <Input
+                      value={milestoneNotes}
+                      onChange={(e) => setMilestoneNotes(e.target.value)}
+                      placeholder="Quick note (optional)..."
+                      className="h-12"
+                    />
+
+                    <Button 
+                      onClick={handleAddMilestone}
+                      className="w-full gradient-sunset h-12 text-base"
+                      disabled={!milestoneName.trim()}
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      Add Spot
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Description */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Share your story</p>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Tell us about your journey..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-base"
+                />
+              </div>
+
+              {/* Privacy */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Who can see this?</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {privacyOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setPrivacy(option.value)}
+                      className={`p-3 rounded-xl text-center transition-all ${
+                        privacy === option.value
+                          ? 'bg-primary/20 border-2 border-primary'
+                          : 'bg-muted border-2 border-transparent hover:border-muted-foreground/20'
+                      }`}
+                    >
+                      <div className={`mx-auto mb-1 ${privacy === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
+                        {option.icon}
+                      </div>
+                      <p className={`text-sm font-medium ${privacy === option.value ? 'text-primary' : 'text-foreground'}`}>
+                        {option.label}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Submit */}
+              <Button
+                onClick={handleEndTrip}
+                disabled={isSubmitting}
+                className="w-full h-14 gradient-forest text-base font-display font-semibold"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Flag className="w-5 h-5 mr-2" />
+                    Complete Trip
+                  </>
+                )}
+              </Button>
             </div>
           </motion.div>
         </div>
