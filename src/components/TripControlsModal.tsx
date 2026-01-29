@@ -106,7 +106,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<Tab>('progress');
+  const [activeTab, setActiveTab] = useState<Tab>('route');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Progress state
