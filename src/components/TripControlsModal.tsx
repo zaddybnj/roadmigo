@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Flag, Lock, Users, Globe, Navigation, Loader2, Plus, Trash2,
-  Gauge, FileText, MapPin
+  MapPin
 } from 'lucide-react';
 import { useTrip, Waypoint } from '@/context/TripContext';
 import { useNavigate } from 'react-router-dom';
