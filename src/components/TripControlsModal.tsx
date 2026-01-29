@@ -133,12 +133,6 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [derivedStates, setDerivedStates] = useState<string[]>([]);
 
-  // Initialize notes from active trip
-  useEffect(() => {
-    if (activeTrip) {
-      setNotesInput(activeTrip.notes || '');
-    }
-  }, [activeTrip]);
 
   if (!activeTrip) return null;
 
