@@ -286,11 +286,6 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
     }
   };
 
-  const tabs = [
-    { id: 'route' as Tab, icon: Navigation, label: 'Route' },
-    { id: 'locations' as Tab, icon: MapPin, label: 'Locations' },
-  ];
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -327,26 +322,8 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
               </button>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex border-b border-border flex-shrink-0">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
-                    activeTab === tab.id 
-                      ? 'text-primary border-b-2 border-primary -mb-px' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <tab.icon className="w-5 h-5" />
-                  <span className="text-xs font-medium">{tab.label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            {/* Content - Single Scrollable View */}
+            <div className="flex-1 overflow-y-auto p-4 min-h-0 space-y-6">
               {/* Route Tab (Combined Route + Finish) */}
               {activeTab === 'route' && (
                 <div className="space-y-6">
