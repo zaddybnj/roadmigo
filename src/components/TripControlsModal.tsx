@@ -136,34 +136,6 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
 
   if (!activeTrip) return null;
 
-  const handleQuickAddMiles = async (amount: number) => {
-    const newMiles = activeTrip.currentMiles + amount;
-    await updateMiles(newMiles);
-    toast({
-      title: 'Miles added',
-      description: `+${amount} miles (total: ${newMiles.toLocaleString()})`,
-    });
-  };
-
-  const handleUpdateMiles = async () => {
-    const miles = parseInt(milesInput);
-    if (!isNaN(miles) && miles >= 0) {
-      await updateMiles(miles);
-      toast({
-        title: 'Odometer updated',
-        description: `Trip distance set to ${miles.toLocaleString()} miles`,
-      });
-      setMilesInput('');
-    }
-  };
-
-  const handleSaveNotes = async () => {
-    await updateNotes(notesInput);
-    toast({
-      title: 'Notes saved',
-      description: 'Your trip notes have been updated',
-    });
-  };
 
   const handleAddRouteStop = async () => {
     if (!stopName.trim() || !stopCoords) {
