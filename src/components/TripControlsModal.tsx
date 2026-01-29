@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Flag, Lock, Users, Globe, Navigation, Loader2, Plus, Trash2,
-  MapPin
+  MapPin, ChevronDown
 } from 'lucide-react';
 import { useTrip, Waypoint } from '@/context/TripContext';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MILESTONE_CATEGORIES, getCategoryInfo, Milestone, MilestoneCategory } from '@/types/milestone';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface TripControlsModalProps {
   isOpen: boolean;
@@ -19,7 +20,6 @@ interface TripControlsModalProps {
 }
 
 type Privacy = 'public' | 'friends' | 'private';
-type Tab = 'route' | 'locations';
 
 interface LocationResult {
   name: string;
@@ -106,8 +106,11 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<Tab>('route');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Collapsible sections
+  const [showStops, setShowStops] = useState(false);
+  const [showSpots, setShowSpots] = useState(false);
   
   // Stop form state
   const [stopName, setStopName] = useState('');
@@ -119,9 +122,6 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   const [milestoneNotes, setMilestoneNotes] = useState('');
   const [milestoneCoords, setMilestoneCoords] = useState<{ lat: number; lng: number } | null>(null);
   
-  // Locations tab - toggle between stops and spots
-  const [locationMode, setLocationMode] = useState<'stops' | 'spots'>('stops');
-  
   // End trip state
   const [description, setDescription] = useState('');
   const [privacy, setPrivacy] = useState<Privacy>('public');
@@ -132,7 +132,6 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [derivedStates, setDerivedStates] = useState<string[]>([]);
-
 
   if (!activeTrip) return null;
 
