@@ -39,11 +39,13 @@ export const LocationSearch = ({
     setIsLoading(true);
     try {
       // Using Nominatim (OpenStreetMap) - free geocoding API
+      // User-Agent is required by Nominatim usage policy
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5&addressdetails=1`,
         {
           headers: {
             'Accept': 'application/json',
+            'User-Agent': 'RoadTripApp/1.0',
           },
         }
       );
