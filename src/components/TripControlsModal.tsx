@@ -10,7 +10,7 @@ import { LocationSearch } from '@/components/LocationSearch';
 import { fetchRoute, RouteData, RoutePoint, formatRouteMiles, formatRouteDuration } from '@/lib/routing';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { MILESTONE_CATEGORIES, getCategoryInfo, Milestone, MilestoneCategory } from '@/types/milestone';
 import { MILESTONE_CATEGORIES, getCategoryInfo, Milestone, MilestoneCategory } from '@/types/milestone';
 
 interface TripControlsModalProps {
