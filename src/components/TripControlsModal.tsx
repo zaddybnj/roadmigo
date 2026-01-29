@@ -109,10 +109,6 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   const [activeTab, setActiveTab] = useState<Tab>('route');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Progress state
-  const [milesInput, setMilesInput] = useState('');
-  const [notesInput, setNotesInput] = useState('');
-  
   // Stop form state
   const [stopName, setStopName] = useState('');
   const [stopCoords, setStopCoords] = useState<{ lat: number; lng: number } | null>(null);
