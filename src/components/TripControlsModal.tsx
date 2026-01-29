@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Flag, Lock, Users, Globe, Navigation, Loader2, Plus, Trash2,
-  Gauge, FileText, MapPin
+  MapPin
 } from 'lucide-react';
 import { useTrip, Waypoint } from '@/context/TripContext';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +19,7 @@ interface TripControlsModalProps {
 }
 
 type Privacy = 'public' | 'friends' | 'private';
-type Tab = 'progress' | 'locations' | 'finish';
+type Tab = 'route' | 'locations';
 
 interface LocationResult {
   name: string;
@@ -102,16 +102,12 @@ function getStatesFromCoordinates(coords: [number, number][]): string[] {
 }
 
 export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) => {
-  const { activeTrip, endTrip, updateMiles, updateNotes, addMilestone, removeMilestone, addRouteStop, removeRouteStop } = useTrip();
+  const { activeTrip, endTrip, addMilestone, removeMilestone, addRouteStop, removeRouteStop } = useTrip();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<Tab>('progress');
+  const [activeTab, setActiveTab] = useState<Tab>('route');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Progress state
-  const [milesInput, setMilesInput] = useState('');
-  const [notesInput, setNotesInput] = useState('');
   
   // Stop form state
   const [stopName, setStopName] = useState('');
@@ -137,43 +133,9 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [derivedStates, setDerivedStates] = useState<string[]>([]);
 
-  // Initialize notes from active trip
-  useEffect(() => {
-    if (activeTrip) {
-      setNotesInput(activeTrip.notes || '');
-    }
-  }, [activeTrip]);
 
   if (!activeTrip) return null;
 
-  const handleQuickAddMiles = async (amount: number) => {
-    const newMiles = activeTrip.currentMiles + amount;
-    await updateMiles(newMiles);
-    toast({
-      title: 'Miles added',
-      description: `+${amount} miles (total: ${newMiles.toLocaleString()})`,
-    });
-  };
-
-  const handleUpdateMiles = async () => {
-    const miles = parseInt(milesInput);
-    if (!isNaN(miles) && miles >= 0) {
-      await updateMiles(miles);
-      toast({
-        title: 'Odometer updated',
-        description: `Trip distance set to ${miles.toLocaleString()} miles`,
-      });
-      setMilesInput('');
-    }
-  };
-
-  const handleSaveNotes = async () => {
-    await updateNotes(notesInput);
-    toast({
-      title: 'Notes saved',
-      description: 'Your trip notes have been updated',
-    });
-  };
 
   const handleAddRouteStop = async () => {
     if (!stopName.trim() || !stopCoords) {
@@ -326,9 +288,8 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   };
 
   const tabs = [
-    { id: 'progress' as Tab, icon: Gauge, label: 'Progress' },
+    { id: 'route' as Tab, icon: Navigation, label: 'Route' },
     { id: 'locations' as Tab, icon: MapPin, label: 'Locations' },
-    { id: 'finish' as Tab, icon: Flag, label: 'Finish' },
   ];
 
   return (
@@ -387,70 +348,182 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 min-h-0">
-              {/* Progress Tab */}
-              {activeTab === 'progress' && (
+              {/* Route Tab (Combined Route + Finish) */}
+              {activeTab === 'route' && (
                 <div className="space-y-6">
-                  {/* Current stats */}
-                  <div className="bg-muted/50 rounded-xl p-4 text-center">
-                    <p className="text-sm text-muted-foreground mb-1">Current Odometer</p>
-                    <p className="font-display text-4xl font-bold text-primary">
-                      {activeTrip.currentMiles.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-muted-foreground">miles</p>
+                  {/* Trip Summary */}
+                  <div className="bg-muted/50 rounded-xl p-4">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <p className="font-display text-2xl font-bold text-primary">
+                          {routeData ? formatRouteMiles(routeData.distance).toLocaleString() : activeTrip.currentMiles.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Miles</p>
+                      </div>
+                      <div>
+                        <p className="font-display text-2xl font-bold">{activeTrip.daysOnRoad}</p>
+                        <p className="text-xs text-muted-foreground">Days</p>
+                      </div>
+                      <div>
+                        <p className="font-display text-2xl font-bold text-secondary">{activeTrip.waypoints.length}</p>
+                        <p className="text-xs text-muted-foreground">Stops</p>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Quick add */}
+                  {/* Route Section */}
                   <div className="space-y-3">
-                    <p className="text-sm font-medium">Quick Add Miles</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[50, 100, 200, 500].map((amount) => (
-                        <Button
-                          key={amount}
-                          variant="outline"
-                          size="lg"
-                          onClick={() => handleQuickAddMiles(amount)}
-                          className="text-base"
+                    <p className="text-sm font-medium">Calculate your route</p>
+                    <p className="text-xs text-muted-foreground">
+                      Set start and end points. Stops logged in Locations will be included automatically.
+                    </p>
+                    
+                    {/* Start */}
+                    <div className="relative">
+                      <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
+                        <span className="text-primary-foreground text-xs font-bold">S</span>
+                      </div>
+                      <LocationSearch
+                        value={startLocationText}
+                        onChange={(v) => { setStartLocationText(v); setRouteData(null); }}
+                        onLocationSelect={(loc) => { setStartLocation(loc); setRouteData(null); }}
+                        placeholder="Where did you start?"
+                        className="pl-12"
+                      />
+                    </div>
+
+                    {/* Show logged stops */}
+                    {activeTrip.waypoints.length > 0 && (
+                      <div className="pl-12 py-2 text-sm text-muted-foreground">
+                        + {activeTrip.waypoints.length} logged stop{activeTrip.waypoints.length > 1 ? 's' : ''} will be included
+                      </div>
+                    )}
+                    
+                    {/* End */}
+                    <div className="relative">
+                      <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center z-10">
+                        <span className="text-secondary-foreground text-xs font-bold">E</span>
+                      </div>
+                      <LocationSearch
+                        value={endLocationText}
+                        onChange={(v) => { setEndLocationText(v); setRouteData(null); }}
+                        onLocationSelect={(loc) => { setEndLocation(loc); setRouteData(null); }}
+                        placeholder="Where did you end up?"
+                        className="pl-12"
+                      />
+                    </div>
+
+                    {startLocation && endLocation && !routeData && (
+                      <Button
+                        variant="outline"
+                        onClick={handleFetchRoute}
+                        disabled={isLoadingRoute}
+                        className="w-full h-12"
+                      >
+                        {isLoadingRoute ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Calculating...
+                          </>
+                        ) : (
+                          <>
+                            <Navigation className="w-4 h-4 mr-2" />
+                            Update Route
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {routeData && (
+                      <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Navigation className="w-4 h-4 text-secondary" />
+                            <span className="font-medium text-secondary">Route ready!</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setRouteData(null)}
+                            className="text-xs text-muted-foreground"
+                          >
+                            Recalculate
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{formatRouteMiles(routeData.distance)} miles</span>
+                          <span>•</span>
+                          <span>{formatRouteDuration(routeData.duration)}</span>
+                        </div>
+                        {derivedStates.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-2">
+                            {derivedStates.map(state => (
+                              <span key={state} className="px-2 py-1 bg-secondary/20 text-secondary text-xs rounded-full">
+                                {state}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">Share your story</p>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Tell us about your journey..."
+                      rows={3}
+                      className="w-full px-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-base"
+                    />
+                  </div>
+
+                  {/* Privacy */}
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">Who can see this?</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {privacyOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setPrivacy(option.value)}
+                          className={`p-3 rounded-xl text-center transition-all ${
+                            privacy === option.value
+                              ? 'bg-primary/20 border-2 border-primary'
+                              : 'bg-muted border-2 border-transparent hover:border-muted-foreground/20'
+                          }`}
                         >
-                          +{amount}
-                        </Button>
+                          <div className={`mx-auto mb-1 ${privacy === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {option.icon}
+                          </div>
+                          <p className={`text-sm font-medium ${privacy === option.value ? 'text-primary' : 'text-foreground'}`}>
+                            {option.label}
+                          </p>
+                        </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Manual entry */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Set Total Miles</p>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        value={milesInput}
-                        onChange={(e) => setMilesInput(e.target.value)}
-                        placeholder="Enter total miles..."
-                        className="text-lg h-12"
-                      />
-                      <Button onClick={handleUpdateMiles} size="lg" className="gradient-sunset px-6">
-                        Set
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-sm font-medium">Trip Notes</p>
-                    </div>
-                    <textarea
-                      value={notesInput}
-                      onChange={(e) => setNotesInput(e.target.value)}
-                      placeholder="Jot down memories, places, things to remember..."
-                      rows={4}
-                      className="w-full px-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-base"
-                    />
-                    <Button variant="outline" onClick={handleSaveNotes} className="w-full">
-                      Save Notes
-                    </Button>
-                  </div>
+                  {/* Submit */}
+                  <Button
+                    onClick={handleEndTrip}
+                    disabled={isSubmitting}
+                    className="w-full h-14 gradient-forest text-base font-display font-semibold"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Flag className="w-5 h-5 mr-2" />
+                        Complete Trip
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
 
@@ -663,172 +736,6 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                 </div>
               )}
 
-              {/* Finish Tab */}
-              {activeTab === 'finish' && (
-                <div className="space-y-6">
-                  {/* Trip Summary */}
-                  <div className="bg-muted/50 rounded-xl p-4">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <p className="font-display text-2xl font-bold text-primary">{activeTrip.currentMiles.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Miles</p>
-                      </div>
-                      <div>
-                        <p className="font-display text-2xl font-bold">{activeTrip.daysOnRoad}</p>
-                        <p className="text-xs text-muted-foreground">Days</p>
-                      </div>
-                      <div>
-                        <p className="font-display text-2xl font-bold text-secondary">{activeTrip.waypoints.length}</p>
-                        <p className="text-xs text-muted-foreground">Stops</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Route Section */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Calculate your route</p>
-                    <p className="text-xs text-muted-foreground">
-                      This will determine the states you visited automatically
-                    </p>
-                    
-                    {/* Start */}
-                    <div className="relative">
-                      <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
-                        <span className="text-primary-foreground text-xs font-bold">S</span>
-                      </div>
-                      <LocationSearch
-                        value={startLocationText}
-                        onChange={(v) => { setStartLocationText(v); setRouteData(null); }}
-                        onLocationSelect={(loc) => { setStartLocation(loc); setRouteData(null); }}
-                        placeholder="Where did you start?"
-                        className="pl-12"
-                      />
-                    </div>
-
-                    {/* Show logged stops */}
-                    {activeTrip.waypoints.length > 0 && (
-                      <div className="pl-12 py-2 text-sm text-muted-foreground">
-                        + {activeTrip.waypoints.length} logged stop{activeTrip.waypoints.length > 1 ? 's' : ''} will be included
-                      </div>
-                    )}
-                    
-                    {/* End */}
-                    <div className="relative">
-                      <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center z-10">
-                        <span className="text-secondary-foreground text-xs font-bold">E</span>
-                      </div>
-                      <LocationSearch
-                        value={endLocationText}
-                        onChange={(v) => { setEndLocationText(v); setRouteData(null); }}
-                        onLocationSelect={(loc) => { setEndLocation(loc); setRouteData(null); }}
-                        placeholder="Where did you end up?"
-                        className="pl-12"
-                      />
-                    </div>
-
-                    {startLocation && endLocation && !routeData && (
-                      <Button
-                        variant="outline"
-                        onClick={handleFetchRoute}
-                        disabled={isLoadingRoute}
-                        className="w-full h-12"
-                      >
-                        {isLoadingRoute ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Calculating...
-                          </>
-                        ) : (
-                          <>
-                            <Navigation className="w-4 h-4 mr-2" />
-                            Calculate Route
-                          </>
-                        )}
-                      </Button>
-                    )}
-
-                    {routeData && (
-                      <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Navigation className="w-4 h-4 text-secondary" />
-                          <span className="font-medium text-secondary">Route ready!</span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{formatRouteMiles(routeData.distance)} miles</span>
-                          <span>•</span>
-                          <span>{formatRouteDuration(routeData.duration)}</span>
-                        </div>
-                        {derivedStates.length > 0 && (
-                          <div className="flex flex-wrap gap-1 pt-2">
-                            {derivedStates.map(state => (
-                              <span key={state} className="px-2 py-1 bg-secondary/20 text-secondary text-xs rounded-full">
-                                {state}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Description */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Share your story</p>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Tell us about your journey..."
-                      rows={3}
-                      className="w-full px-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-base"
-                    />
-                  </div>
-
-                  {/* Privacy */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Who can see this?</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {privacyOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setPrivacy(option.value)}
-                          className={`p-3 rounded-xl text-center transition-all ${
-                            privacy === option.value
-                              ? 'bg-primary/20 border-2 border-primary'
-                              : 'bg-muted border-2 border-transparent hover:border-muted-foreground/20'
-                          }`}
-                        >
-                          <div className={`mx-auto mb-1 ${privacy === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
-                            {option.icon}
-                          </div>
-                          <p className={`text-sm font-medium ${privacy === option.value ? 'text-primary' : 'text-foreground'}`}>
-                            {option.label}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Submit */}
-                  <Button
-                    onClick={handleEndTrip}
-                    disabled={isSubmitting}
-                    className="w-full h-14 gradient-forest text-base font-display font-semibold"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Flag className="w-5 h-5 mr-2" />
-                        Complete Trip
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
             </div>
           </motion.div>
         </div>
