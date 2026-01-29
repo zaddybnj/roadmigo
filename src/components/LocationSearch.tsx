@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Search, MapPin, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 
 interface LocationResult {
   name: string;
@@ -39,14 +38,7 @@ export const LocationSearch = ({
 
     setIsLoading(true);
     try {
-      // Use edge function proxy for Nominatim to avoid CORS issues
-      const { data, error } = await supabase.functions.invoke('geocode', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        body: null,
-      });
-
-      // Edge function invoke doesn't support query params well, use fetch directly
+      // Use edge function proxy for geocoding to avoid CORS issues
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/geocode?q=${encodeURIComponent(query)}`,
         {
