@@ -19,7 +19,7 @@ interface TripControlsModalProps {
 }
 
 type Privacy = 'public' | 'friends' | 'private';
-type Tab = 'progress' | 'locations' | 'finish';
+type Tab = 'route' | 'locations';
 
 interface LocationResult {
   name: string;
