@@ -22,24 +22,37 @@ serve(async (req) => {
       );
     }
 
-    // Call Nominatim with proper User-Agent (required by their policy)
-    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5&addressdetails=1`;
+    // Use Photon API (Komoot) - free, no rate limits, CORS-friendly alternative to Nominatim
+    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=en&osm_tag=place`;
     
-    const response = await fetch(nominatimUrl, {
+    const response = await fetch(photonUrl, {
       headers: {
-        'User-Agent': 'RoadTripApp/1.0 (contact@example.com)',
         'Accept': 'application/json',
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Nominatim returned ${response.status}`);
+      throw new Error(`Photon returned ${response.status}`);
     }
 
     const data = await response.json();
     
+    // Transform Photon's GeoJSON format to match expected format
+    const results = data.features?.map((feature: any) => ({
+      name: feature.properties.name || feature.properties.city || feature.properties.county,
+      display_name: [
+        feature.properties.name,
+        feature.properties.city,
+        feature.properties.county,
+        feature.properties.state,
+        feature.properties.country
+      ].filter(Boolean).join(', '),
+      lat: feature.geometry.coordinates[1].toString(),
+      lon: feature.geometry.coordinates[0].toString(),
+    })) || [];
+    
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(results),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
