@@ -326,9 +326,8 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   };
 
   const tabs = [
-    { id: 'progress' as Tab, icon: Gauge, label: 'Progress' },
+    { id: 'route' as Tab, icon: Navigation, label: 'Route' },
     { id: 'locations' as Tab, icon: MapPin, label: 'Locations' },
-    { id: 'finish' as Tab, icon: Flag, label: 'Finish' },
   ];
 
   return (
