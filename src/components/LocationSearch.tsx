@@ -39,14 +39,20 @@ export const LocationSearch = ({
 
     setIsLoading(true);
     try {
-      // Using Nominatim (OpenStreetMap) - free geocoding API
-      // User-Agent is required by Nominatim usage policy
+      // Use edge function proxy for Nominatim to avoid CORS issues
+      const { data, error } = await supabase.functions.invoke('geocode', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        body: null,
+      });
+
+      // Edge function invoke doesn't support query params well, use fetch directly
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5&addressdetails=1`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/geocode?q=${encodeURIComponent(query)}`,
         {
           headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'RoadTripApp/1.0',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'Content-Type': 'application/json',
           },
         }
       );
