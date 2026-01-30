@@ -102,7 +102,7 @@ function getStatesFromCoordinates(coords: [number, number][]): string[] {
 }
 
 export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) => {
-  const { activeTrip, endTrip, addMilestone, removeMilestone, addRouteStop, removeRouteStop } = useTrip();
+  const { activeTrip, endTrip, addMilestone, removeMilestone, addRouteStop, removeRouteStop, updateRoutePreview } = useTrip();
   const navigate = useNavigate();
   const { toast } = useToast();
   
