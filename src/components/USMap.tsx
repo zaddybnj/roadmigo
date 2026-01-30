@@ -72,12 +72,12 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
       className="w-full aspect-[1.6/1] relative"
     >
       {/* Route info badge */}
-      {routeInfo && (
+      {effectiveRouteData && (
         <div className="absolute top-2 left-2 z-10 bg-card/90 backdrop-blur rounded-lg px-3 py-1.5 flex items-center gap-2">
           <Navigation className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium">{formatRouteMiles(routeInfo.distance)} mi</span>
+          <span className="text-sm font-medium">{formatRouteMiles(effectiveRouteData.distance)} mi</span>
           <span className="text-muted-foreground">•</span>
-          <span className="text-sm text-muted-foreground">{formatRouteDuration(routeInfo.duration)}</span>
+          <span className="text-sm text-muted-foreground">{formatRouteDuration(effectiveRouteData.duration)}</span>
         </div>
       )}
 
