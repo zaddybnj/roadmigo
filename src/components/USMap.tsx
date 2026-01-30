@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Milestone, getCategoryInfo } from '@/types/milestone';
 import { RouteData, formatRouteMiles, formatRouteDuration } from '@/lib/routing';
 import { Navigation } from 'lucide-react';
-import { Waypoint } from '@/context/TripContext';
+import { Waypoint, RoutePreview } from '@/context/TripContext';
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
 
@@ -13,6 +13,7 @@ interface USMapProps {
   milestones?: Milestone[];
   routeInfo?: RouteData | null;
   activeStops?: Waypoint[]; // For showing stops during an active trip
+  routePreview?: RoutePreview; // For showing start/end pins before route is calculated
 }
 
 // State FIPS to abbreviation mapping
