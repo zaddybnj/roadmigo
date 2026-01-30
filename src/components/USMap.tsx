@@ -144,13 +144,29 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
           />
         ))}
 
-        {/* Route line segments */}
+        {/* Route line segments with glow effect - render glow layer first */}
+        {routeSegments.length > 0 && (
+          <g filter="url(#routeGlow)">
+            {routeSegments.map((segment, i) => (
+              <Line
+                key={`route-glow-${i}`}
+                from={segment.from}
+                to={segment.to}
+                stroke="url(#routeGradient)"
+                strokeWidth={4}
+                strokeLinecap="round"
+              />
+            ))}
+          </g>
+        )}
+        
+        {/* Route line segments - main line on top */}
         {routeSegments.map((segment, i) => (
           <Line
             key={`route-${i}`}
             from={segment.from}
             to={segment.to}
-            stroke="hsl(32, 95%, 50%)"
+            stroke="url(#routeGradient)"
             strokeWidth={2.5}
             strokeLinecap="round"
           />
