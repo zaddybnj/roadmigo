@@ -159,6 +159,7 @@ const ActiveTripPage = () => {
               visitedStates={activeTrip.statesVisited} 
               milestones={activeTrip.milestones}
               activeStops={activeTrip.waypoints}
+              routePreview={activeTrip.routePreview}
             />
           </div>
         </motion.div>
