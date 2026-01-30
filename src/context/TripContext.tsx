@@ -269,8 +269,13 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [activeTrip?.startDate]);
 
-  const startTrip = useCallback(async (title: string, startLocation: string) => {
+  const startTrip = useCallback(async (title: string, startLocation: string, startLocationData?: StartLocationData) => {
     if (!user) throw new Error('Must be logged in to start a trip');
+
+    // Store start location data in route JSONB if provided
+    const routePayload = startLocationData 
+      ? { startLocation: startLocationData } 
+      : [];
 
     const { data, error } = await supabase
       .from('trips')
@@ -284,18 +289,24 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         nights: 0,
         states: [],
         photos: [],
-        route: [],
+        route: routePayload,
       })
       .select()
       .single();
 
     if (error) throw error;
 
+    // Initialize with route preview showing start pin on map
+    const initialRoutePreview: RoutePreview | undefined = startLocationData 
+      ? { startPoint: startLocationData }
+      : undefined;
+
     setActiveTrip({
       id: data.id,
       title,
       startDate: data.start_date,
       startLocation,
+      startLocationData,
       currentMiles: 0,
       statesVisited: [],
       daysOnRoad: 1,
@@ -303,6 +314,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       photos: [],
       notes: '',
       milestones: [],
+      routePreview: initialRoutePreview,
     });
   }, [user]);
 
