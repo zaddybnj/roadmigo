@@ -360,7 +360,15 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                   <LocationSearch
                     value={startLocationText}
                     onChange={(v) => { setStartLocationText(v); setRouteData(null); }}
-                    onLocationSelect={(loc) => { setStartLocation(loc); setRouteData(null); }}
+                    onLocationSelect={(loc) => { 
+                      setStartLocation(loc); 
+                      setRouteData(null);
+                      // Update route preview for map pins
+                      updateRoutePreview({
+                        startPoint: loc ? { latitude: loc.latitude, longitude: loc.longitude, name: loc.name } : undefined,
+                        endPoint: endLocation ? { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name } : undefined,
+                      });
+                    }}
                     placeholder="Where did you start?"
                     className="pl-12"
                   />
