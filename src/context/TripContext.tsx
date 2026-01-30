@@ -197,20 +197,31 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const activeDbTrip = trips?.find(t => t.status === 'active' && t.user_id === user.id);
       
       if (activeDbTrip) {
-        // Parse waypoints from route JSONB if they exist
+        // Parse waypoints and start location from route JSONB if they exist
         let activeWaypoints: Waypoint[] = [];
+        let startLocData: StartLocationData | undefined;
+        
         if (activeDbTrip.route && typeof activeDbTrip.route === 'object' && !Array.isArray(activeDbTrip.route)) {
           const routeData = activeDbTrip.route as any;
           if (routeData.stops && Array.isArray(routeData.stops)) {
             activeWaypoints = routeData.stops;
           }
+          if (routeData.startLocation) {
+            startLocData = routeData.startLocation;
+          }
         }
+
+        // Initialize route preview with start location if available
+        const initialRoutePreview: RoutePreview | undefined = startLocData 
+          ? { startPoint: startLocData }
+          : undefined;
 
         setActiveTrip({
           id: activeDbTrip.id,
           title: activeDbTrip.title,
           startDate: activeDbTrip.start_date,
-          startLocation: '', // Not stored in DB currently
+          startLocation: startLocData?.name || '',
+          startLocationData: startLocData,
           currentMiles: activeDbTrip.distance || 0,
           statesVisited: activeDbTrip.states || [],
           daysOnRoad: Math.max(1, Math.ceil(
@@ -220,6 +231,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
           photos: activeDbTrip.photos || [],
           notes: activeDbTrip.notes || '',
           milestones: ((activeDbTrip as any).milestones as Milestone[]) || [],
+          routePreview: initialRoutePreview,
         });
       } else {
         setActiveTrip(null);
