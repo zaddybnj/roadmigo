@@ -478,6 +478,10 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveTrip(prev => prev ? { ...prev, waypoints: newWaypoints } : null);
   }, [activeTrip]);
 
+  const updateRoutePreview = useCallback((preview: RoutePreview) => {
+    setActiveTrip(prev => prev ? { ...prev, routePreview: preview } : null);
+  }, []);
+
   return (
     <TripContext.Provider value={{
       activeTrip,
