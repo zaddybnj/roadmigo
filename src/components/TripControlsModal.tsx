@@ -135,6 +135,26 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
 
   if (!activeTrip) return null;
 
+  // Pre-populate start location from trip's startLocationData when modal opens
+  useEffect(() => {
+    if (isOpen && activeTrip.startLocationData && !startLocation) {
+      const data = activeTrip.startLocationData;
+      setStartLocation({
+        name: data.name || activeTrip.startLocation,
+        displayName: data.name || activeTrip.startLocation,
+        latitude: data.latitude,
+        longitude: data.longitude,
+      });
+      setStartLocationText(data.name || activeTrip.startLocation);
+      
+      // Ensure the map shows the start pin
+      updateRoutePreview({
+        startPoint: data,
+        endPoint: activeTrip.routePreview?.endPoint,
+        routeData: activeTrip.routePreview?.routeData,
+      });
+    }
+  }, [isOpen, activeTrip.startLocationData, activeTrip.startLocation, activeTrip.routePreview, updateRoutePreview, startLocation]);
 
   const handleAddRouteStop = async () => {
     if (!stopName.trim() || !stopCoords) {
