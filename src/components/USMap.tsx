@@ -31,20 +31,25 @@ const stateAbbreviations: { [key: string]: string } = {
   '56': 'WY',
 };
 
-export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops = [] }: USMapProps) => {
+export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops = [], routePreview }: USMapProps) => {
   const [hoveredMilestone, setHoveredMilestone] = useState<string | null>(null);
   const [hoveredStop, setHoveredStop] = useState<string | null>(null);
 
   // Filter milestones that have coordinates
   const geoMilestones = milestones.filter(m => m.latitude && m.longitude);
 
+  // Use route from routePreview if available, otherwise use routeInfo
+  const effectiveRouteData = routePreview?.routeData || routeInfo;
+  const effectiveStartPoint = routePreview?.startPoint || routeInfo?.startPoint;
+  const effectiveEndPoint = routePreview?.endPoint || routeInfo?.endPoint;
+
   // Convert route coordinates to line segments for react-simple-maps
   const routeSegments: Array<{ from: [number, number]; to: [number, number] }> = [];
-  if (routeInfo?.coordinates && routeInfo.coordinates.length > 1) {
-    for (let i = 0; i < routeInfo.coordinates.length - 1; i++) {
+  if (effectiveRouteData?.coordinates && effectiveRouteData.coordinates.length > 1) {
+    for (let i = 0; i < effectiveRouteData.coordinates.length - 1; i++) {
       routeSegments.push({
-        from: routeInfo.coordinates[i],
-        to: routeInfo.coordinates[i + 1],
+        from: effectiveRouteData.coordinates[i],
+        to: effectiveRouteData.coordinates[i + 1],
       });
     }
   }
