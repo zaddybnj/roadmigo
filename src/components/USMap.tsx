@@ -172,10 +172,13 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
           />
         ))}
 
-        {/* Start marker */}
-        {routeInfo?.startPoint && (
-          <Marker coordinates={[routeInfo.startPoint.longitude, routeInfo.startPoint.latitude]}>
-            <circle r={6} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+        {/* Start marker - use effectiveStartPoint */}
+        {effectiveStartPoint && (
+          <Marker coordinates={[effectiveStartPoint.longitude, effectiveStartPoint.latitude]}>
+            <g filter="url(#routeGlow)">
+              <circle r={7} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+            </g>
+            <circle r={7} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
             <text
               textAnchor="middle"
               y={3}
@@ -188,8 +191,8 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
           </Marker>
         )}
 
-        {/* Waypoint markers */}
-        {routeInfo?.waypoints?.map((waypoint, index) => (
+        {/* Waypoint markers - use effectiveRouteData */}
+        {effectiveRouteData?.waypoints?.map((waypoint, index) => (
           <Marker key={`waypoint-${index}`} coordinates={[waypoint.longitude, waypoint.latitude]}>
             <circle r={5} fill="hsl(220, 80%, 60%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
             <text
@@ -204,10 +207,13 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
           </Marker>
         ))}
 
-        {/* End marker */}
-        {routeInfo?.endPoint && (
-          <Marker coordinates={[routeInfo.endPoint.longitude, routeInfo.endPoint.latitude]}>
-            <circle r={6} fill="hsl(0, 70%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+        {/* End marker - use effectiveEndPoint */}
+        {effectiveEndPoint && (
+          <Marker coordinates={[effectiveEndPoint.longitude, effectiveEndPoint.latitude]}>
+            <g filter="url(#routeGlow)">
+              <circle r={7} fill="hsl(32, 95%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+            </g>
+            <circle r={7} fill="hsl(32, 95%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
             <text
               textAnchor="middle"
               y={3}
