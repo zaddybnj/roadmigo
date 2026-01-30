@@ -273,7 +273,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) throw new Error('Must be logged in to start a trip');
 
     // Store start location data in route JSONB if provided
-    const routePayload = startLocationData 
+    const routePayload: any = startLocationData 
       ? { startLocation: startLocationData } 
       : [];
 
