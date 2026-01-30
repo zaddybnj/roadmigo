@@ -1,17 +1,26 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Navigation, Sparkles } from 'lucide-react';
+import { X, Navigation, Sparkles } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
+import { LocationSearch } from '@/components/LocationSearch';
 
 interface StartTripModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface LocationResult {
+  name: string;
+  displayName: string;
+  latitude: number;
+  longitude: number;
+}
+
 export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
   const { startTrip } = useTrip();
   const [title, setTitle] = useState('');
-  const [startLocation, setStartLocation] = useState('');
+  const [startLocationText, setStartLocationText] = useState('');
+  const [startLocation, setStartLocation] = useState<LocationResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,12 +28,19 @@ export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
     if (!title.trim()) return;
     
     setIsSubmitting(true);
-    startTrip(title.trim(), startLocation.trim() || 'Unknown Location');
+    
+    // Pass location data with coordinates if available
+    await startTrip(
+      title.trim(), 
+      startLocation?.name || startLocationText.trim() || 'Unknown Location',
+      startLocation ? { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name } : undefined
+    );
     
     setTimeout(() => {
       setIsSubmitting(false);
       setTitle('');
-      setStartLocation('');
+      setStartLocationText('');
+      setStartLocation(null);
       onClose();
     }, 500);
   };
@@ -88,28 +104,38 @@ export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
                 </div>
               </div>
 
-              {/* Start Location */}
+              {/* Start Location with geocoding */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Starting Location
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={startLocation}
-                    onChange={(e) => setStartLocation(e.target.value)}
-                    placeholder="e.g., San Diego, CA"
-                    className="w-full pl-11 pr-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
+                    <span className="text-primary-foreground text-xs font-bold">S</span>
+                  </div>
+                  <LocationSearch
+                    value={startLocationText}
+                    onChange={setStartLocationText}
+                    onLocationSelect={(loc) => {
+                      setStartLocation(loc);
+                      setStartLocationText(loc.name);
+                    }}
+                    placeholder="Search for your starting city..."
+                    className="[&_input]:pl-12"
                   />
                 </div>
+                {startLocation && (
+                  <p className="text-xs text-muted-foreground mt-1 pl-1">
+                    📍 {startLocation.displayName}
+                  </p>
+                )}
               </div>
 
               {/* Tips */}
               <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4">
                 <p className="text-sm text-secondary font-medium mb-1">💡 Pro tip</p>
                 <p className="text-xs text-muted-foreground">
-                  You can add photos, update mileage, and log states visited during your trip.
+                  Your starting location will appear on the map and be used for route calculations.
                 </p>
               </div>
 

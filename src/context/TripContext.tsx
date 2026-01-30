@@ -14,11 +14,18 @@ export interface RoutePreview {
   routeData?: RouteData;
 }
 
+export interface StartLocationData {
+  latitude: number;
+  longitude: number;
+  name?: string;
+}
+
 export interface ActiveTrip {
   id: string;
   title: string;
   startDate: string;
   startLocation: string;
+  startLocationData?: StartLocationData;
   currentMiles: number;
   statesVisited: string[];
   daysOnRoad: number;
@@ -75,7 +82,7 @@ interface TripContextType {
   completedTrips: Trip[];
   isTracking: boolean;
   loading: boolean;
-  startTrip: (title: string, startLocation: string) => Promise<void>;
+  startTrip: (title: string, startLocation: string, startLocationData?: StartLocationData) => Promise<void>;
   endTrip: (description: string, privacy: Trip['privacy'], routeData?: RouteData, derivedStates?: string[]) => Promise<Trip>;
   updateMiles: (miles: number) => Promise<void>;
   addPhoto: (photoUrl: string) => Promise<void>;
@@ -190,20 +197,31 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const activeDbTrip = trips?.find(t => t.status === 'active' && t.user_id === user.id);
       
       if (activeDbTrip) {
-        // Parse waypoints from route JSONB if they exist
+        // Parse waypoints and start location from route JSONB if they exist
         let activeWaypoints: Waypoint[] = [];
+        let startLocData: StartLocationData | undefined;
+        
         if (activeDbTrip.route && typeof activeDbTrip.route === 'object' && !Array.isArray(activeDbTrip.route)) {
           const routeData = activeDbTrip.route as any;
           if (routeData.stops && Array.isArray(routeData.stops)) {
             activeWaypoints = routeData.stops;
           }
+          if (routeData.startLocation) {
+            startLocData = routeData.startLocation;
+          }
         }
+
+        // Initialize route preview with start location if available
+        const initialRoutePreview: RoutePreview | undefined = startLocData 
+          ? { startPoint: startLocData }
+          : undefined;
 
         setActiveTrip({
           id: activeDbTrip.id,
           title: activeDbTrip.title,
           startDate: activeDbTrip.start_date,
-          startLocation: '', // Not stored in DB currently
+          startLocation: startLocData?.name || '',
+          startLocationData: startLocData,
           currentMiles: activeDbTrip.distance || 0,
           statesVisited: activeDbTrip.states || [],
           daysOnRoad: Math.max(1, Math.ceil(
@@ -213,6 +231,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
           photos: activeDbTrip.photos || [],
           notes: activeDbTrip.notes || '',
           milestones: ((activeDbTrip as any).milestones as Milestone[]) || [],
+          routePreview: initialRoutePreview,
         });
       } else {
         setActiveTrip(null);
@@ -262,8 +281,13 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [activeTrip?.startDate]);
 
-  const startTrip = useCallback(async (title: string, startLocation: string) => {
+  const startTrip = useCallback(async (title: string, startLocation: string, startLocationData?: StartLocationData) => {
     if (!user) throw new Error('Must be logged in to start a trip');
+
+    // Store start location data in route JSONB if provided
+    const routePayload: any = startLocationData 
+      ? { startLocation: startLocationData } 
+      : [];
 
     const { data, error } = await supabase
       .from('trips')
@@ -277,18 +301,24 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         nights: 0,
         states: [],
         photos: [],
-        route: [],
+        route: routePayload,
       })
       .select()
       .single();
 
     if (error) throw error;
 
+    // Initialize with route preview showing start pin on map
+    const initialRoutePreview: RoutePreview | undefined = startLocationData 
+      ? { startPoint: startLocationData }
+      : undefined;
+
     setActiveTrip({
       id: data.id,
       title,
       startDate: data.start_date,
       startLocation,
+      startLocationData,
       currentMiles: 0,
       statesVisited: [],
       daysOnRoad: 1,
@@ -296,6 +326,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       photos: [],
       notes: '',
       milestones: [],
+      routePreview: initialRoutePreview,
     });
   }, [user]);
 
