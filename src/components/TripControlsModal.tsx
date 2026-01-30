@@ -102,7 +102,7 @@ function getStatesFromCoordinates(coords: [number, number][]): string[] {
 }
 
 export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) => {
-  const { activeTrip, endTrip, addMilestone, removeMilestone, addRouteStop, removeRouteStop } = useTrip();
+  const { activeTrip, endTrip, addMilestone, removeMilestone, addRouteStop, removeRouteStop, updateRoutePreview } = useTrip();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -239,6 +239,13 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
         const states = getStatesFromCoordinates(route.coordinates);
         setDerivedStates(states);
         
+        // Update route preview with the calculated route for map display
+        updateRoutePreview({
+          startPoint: { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
+          endPoint: { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+          routeData: route,
+        });
+        
         toast({
           title: 'Route calculated!',
           description: `${formatRouteMiles(route.distance)} miles through ${states.length} states`,
@@ -360,7 +367,15 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                   <LocationSearch
                     value={startLocationText}
                     onChange={(v) => { setStartLocationText(v); setRouteData(null); }}
-                    onLocationSelect={(loc) => { setStartLocation(loc); setRouteData(null); }}
+                    onLocationSelect={(loc) => { 
+                      setStartLocation(loc); 
+                      setRouteData(null);
+                      // Update route preview for map pins
+                      updateRoutePreview({
+                        startPoint: loc ? { latitude: loc.latitude, longitude: loc.longitude, name: loc.name } : undefined,
+                        endPoint: endLocation ? { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name } : undefined,
+                      });
+                    }}
                     placeholder="Where did you start?"
                     className="pl-12"
                   />
@@ -381,7 +396,15 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                   <LocationSearch
                     value={endLocationText}
                     onChange={(v) => { setEndLocationText(v); setRouteData(null); }}
-                    onLocationSelect={(loc) => { setEndLocation(loc); setRouteData(null); }}
+                    onLocationSelect={(loc) => { 
+                      setEndLocation(loc); 
+                      setRouteData(null);
+                      // Update route preview for map pins
+                      updateRoutePreview({
+                        startPoint: startLocation ? { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name } : undefined,
+                        endPoint: loc ? { latitude: loc.latitude, longitude: loc.longitude, name: loc.name } : undefined,
+                      });
+                    }}
                     placeholder="Where did you end up?"
                     className="pl-12"
                   />

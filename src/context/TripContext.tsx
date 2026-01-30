@@ -8,6 +8,12 @@ import { RouteData } from '@/lib/routing';
 
 type DbTrip = Tables<'trips'>;
 
+export interface RoutePreview {
+  startPoint?: { latitude: number; longitude: number; name?: string };
+  endPoint?: { latitude: number; longitude: number; name?: string };
+  routeData?: RouteData;
+}
+
 export interface ActiveTrip {
   id: string;
   title: string;
@@ -20,6 +26,7 @@ export interface ActiveTrip {
   photos: string[];
   notes: string;
   milestones: Milestone[];
+  routePreview?: RoutePreview;
 }
 
 export interface Waypoint {
@@ -79,6 +86,7 @@ interface TripContextType {
   addRouteStop: (stop: Waypoint) => Promise<void>;
   removeRouteStop: (stopId: string) => Promise<void>;
   refreshTrips: () => Promise<void>;
+  updateRoutePreview: (preview: RoutePreview) => void;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
@@ -470,6 +478,10 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveTrip(prev => prev ? { ...prev, waypoints: newWaypoints } : null);
   }, [activeTrip]);
 
+  const updateRoutePreview = useCallback((preview: RoutePreview) => {
+    setActiveTrip(prev => prev ? { ...prev, routePreview: preview } : null);
+  }, []);
+
   return (
     <TripContext.Provider value={{
       activeTrip,
@@ -487,6 +499,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addRouteStop,
       removeRouteStop,
       refreshTrips,
+      updateRoutePreview,
     }}>
       {children}
     </TripContext.Provider>
