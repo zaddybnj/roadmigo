@@ -86,6 +86,7 @@ interface TripContextType {
   addRouteStop: (stop: Waypoint) => Promise<void>;
   removeRouteStop: (stopId: string) => Promise<void>;
   refreshTrips: () => Promise<void>;
+  updateRoutePreview: (preview: RoutePreview) => void;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
