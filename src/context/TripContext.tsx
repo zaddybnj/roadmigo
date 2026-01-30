@@ -14,11 +14,18 @@ export interface RoutePreview {
   routeData?: RouteData;
 }
 
+export interface StartLocationData {
+  latitude: number;
+  longitude: number;
+  name?: string;
+}
+
 export interface ActiveTrip {
   id: string;
   title: string;
   startDate: string;
   startLocation: string;
+  startLocationData?: StartLocationData;
   currentMiles: number;
   statesVisited: string[];
   daysOnRoad: number;
