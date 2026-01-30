@@ -82,7 +82,7 @@ interface TripContextType {
   completedTrips: Trip[];
   isTracking: boolean;
   loading: boolean;
-  startTrip: (title: string, startLocation: string) => Promise<void>;
+  startTrip: (title: string, startLocation: string, startLocationData?: StartLocationData) => Promise<void>;
   endTrip: (description: string, privacy: Trip['privacy'], routeData?: RouteData, derivedStates?: string[]) => Promise<Trip>;
   updateMiles: (miles: number) => Promise<void>;
   addPhoto: (photoUrl: string) => Promise<void>;
