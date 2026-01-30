@@ -8,6 +8,12 @@ import { RouteData } from '@/lib/routing';
 
 type DbTrip = Tables<'trips'>;
 
+export interface RoutePreview {
+  startPoint?: { latitude: number; longitude: number; name?: string };
+  endPoint?: { latitude: number; longitude: number; name?: string };
+  routeData?: RouteData;
+}
+
 export interface ActiveTrip {
   id: string;
   title: string;
@@ -20,6 +26,7 @@ export interface ActiveTrip {
   photos: string[];
   notes: string;
   milestones: Milestone[];
+  routePreview?: RoutePreview;
 }
 
 export interface Waypoint {
