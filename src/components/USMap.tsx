@@ -86,6 +86,22 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
         projectionConfig={{ scale: 1000 }}
         className="w-full h-full"
       >
+        {/* SVG Definitions for glowing route effect */}
+        <defs>
+          <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="hsl(152, 60%, 45%)" />
+            <stop offset="50%" stopColor="hsl(42, 95%, 55%)" />
+            <stop offset="100%" stopColor="hsl(32, 95%, 50%)" />
+          </linearGradient>
+          <filter id="routeGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        
         <Geographies geography={geoUrl}>
           {({ geographies }) =>
             geographies.map((geo) => {
