@@ -239,6 +239,13 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
         const states = getStatesFromCoordinates(route.coordinates);
         setDerivedStates(states);
         
+        // Update route preview with the calculated route for map display
+        updateRoutePreview({
+          startPoint: { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
+          endPoint: { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+          routeData: route,
+        });
+        
         toast({
           title: 'Route calculated!',
           description: `${formatRouteMiles(route.distance)} miles through ${states.length} states`,
