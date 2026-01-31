@@ -259,7 +259,7 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
           );
         })}
 
-        {/* Milestone Markers */}
+        {/* Milestone Markers - Small dots with emoji */}
         {geoMilestones.map((milestone) => {
           const catInfo = getCategoryInfo(milestone.category);
           const isHovered = hoveredMilestone === milestone.id;
@@ -271,34 +271,21 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
             >
               <g
                 style={{ cursor: 'pointer' }}
-                transform="translate(-12, -24)"
                 onMouseEnter={() => setHoveredMilestone(milestone.id)}
                 onMouseLeave={() => setHoveredMilestone(null)}
               >
-                {/* Invisible larger hit area to prevent flickering */}
-                <rect
-                  x="-4"
-                  y="-4"
-                  width="32"
-                  height="40"
-                  fill="transparent"
-                  style={{ pointerEvents: 'all' }}
-                />
-                {/* Pin shape */}
-                <path
-                  d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20s12-12.8 12-20c0-6.6-5.4-12-12-12z"
+                {/* Circle background */}
+                <circle
+                  r={isHovered ? 6 : 5}
                   fill={isHovered ? 'hsl(32, 95%, 55%)' : 'hsl(32, 95%, 44%)'}
                   stroke="hsl(220, 20%, 15%)"
-                  strokeWidth="1"
-                  style={{ pointerEvents: 'none' }}
+                  strokeWidth={1}
                 />
-                {/* Emoji icon inside pin */}
+                {/* Emoji icon */}
                 <text
-                  x="12"
-                  y="14"
                   textAnchor="middle"
-                  fontSize="10"
-                  style={{ pointerEvents: 'none' }}
+                  y={3}
+                  fontSize={6}
                 >
                   {catInfo.icon}
                 </text>
