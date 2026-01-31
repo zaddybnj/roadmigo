@@ -510,7 +510,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [activeTrip]);
 
   const updateRoutePreview = useCallback((preview: RoutePreview) => {
-    setActiveTrip(prev => prev ? { ...prev, routePreview: preview } : null);
+    setActiveTrip(prev => {
+      if (!prev) return null;
+      // Update currentMiles when routeData is provided (converting from meters to miles)
+      const newMiles = preview.routeData?.distance 
+        ? Math.round(preview.routeData.distance / 1609.344)
+        : prev.currentMiles;
+      return { ...prev, routePreview: preview, currentMiles: newMiles };
+    });
   }, []);
 
   return (
