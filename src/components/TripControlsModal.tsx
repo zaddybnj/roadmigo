@@ -192,6 +192,41 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
     });
   };
 
+  const triggerRouteCalculation = async () => {
+    if (!startLocation || !endLocation) return;
+
+    setIsLoadingRoute(true);
+    try {
+      const waypointPoints: RoutePoint[] = activeTrip.waypoints.map(w => ({
+        latitude: w.lat,
+        longitude: w.lng,
+        name: w.name,
+      }));
+
+      const route = await fetchRoute(
+        { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
+        { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+        waypointPoints
+      );
+
+      if (route) {
+        setRouteData(route);
+        const states = getStatesFromCoordinates(route.coordinates);
+        setDerivedStates(states);
+        
+        updateRoutePreview({
+          startPoint: { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
+          endPoint: { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+          routeData: route,
+        });
+      }
+    } catch (error) {
+      console.error('Error calculating route:', error);
+    } finally {
+      setIsLoadingRoute(false);
+    }
+  };
+
   const handleAddMilestone = async () => {
     if (!milestoneName.trim()) {
       toast({
@@ -221,6 +256,9 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
     setMilestoneName('');
     setMilestoneNotes('');
     setMilestoneCoords(null);
+
+    // Auto-trigger route calculation if start and end are set
+    await triggerRouteCalculation();
   };
 
   const handleRemoveMilestone = async (id: string, name: string) => {
