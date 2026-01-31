@@ -589,6 +589,101 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                 </CollapsibleContent>
               </Collapsible>
 
+              {/* End Location & Route Calculation Section */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Where did you end up?</p>
+                <p className="text-xs text-muted-foreground">
+                  Set your endpoint. Your start and any logged stops will be included automatically.
+                </p>
+
+                {/* Show logged stops summary */}
+                {(startLocation || activeTrip.waypoints.length > 0) && (
+                  <div className="py-2 text-sm text-muted-foreground bg-muted/30 rounded-lg px-3">
+                    {startLocation && <span>From: {startLocation.name}</span>}
+                    {startLocation && activeTrip.waypoints.length > 0 && <span> → </span>}
+                    {activeTrip.waypoints.length > 0 && (
+                      <span>{activeTrip.waypoints.length} stop{activeTrip.waypoints.length > 1 ? 's' : ''}</span>
+                    )}
+                  </div>
+                )}
+                
+                {/* End */}
+                <div className="relative">
+                  <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center z-10">
+                    <span className="text-secondary-foreground text-xs font-bold">E</span>
+                  </div>
+                  <LocationSearch
+                    value={endLocationText}
+                    onChange={(v) => { setEndLocationText(v); setRouteData(null); }}
+                    onLocationSelect={(loc) => { 
+                      setEndLocation(loc); 
+                      setRouteData(null);
+                      // Update route preview for map pins
+                      updateRoutePreview({
+                        startPoint: startLocation ? { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name } : undefined,
+                        endPoint: loc ? { latitude: loc.latitude, longitude: loc.longitude, name: loc.name } : undefined,
+                      });
+                    }}
+                    placeholder="Search ending location..."
+                    className="pl-12"
+                  />
+                </div>
+
+                {startLocation && endLocation && !routeData && (
+                  <Button
+                    variant="outline"
+                    onClick={handleFetchRoute}
+                    disabled={isLoadingRoute}
+                    className="w-full h-12"
+                  >
+                    {isLoadingRoute ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Calculating...
+                      </>
+                    ) : (
+                      <>
+                        <Navigation className="w-4 h-4 mr-2" />
+                        Calculate Route
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {routeData && (
+                  <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Navigation className="w-4 h-4 text-secondary" />
+                        <span className="font-medium text-secondary">Route ready!</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRouteData(null)}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Recalculate
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>{formatRouteMiles(routeData.distance)} miles</span>
+                      <span>•</span>
+                      <span>{formatRouteDuration(routeData.duration)}</span>
+                    </div>
+                    {derivedStates.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-2">
+                        {derivedStates.map(state => (
+                          <span key={state} className="px-2 py-1 bg-secondary/20 text-secondary text-xs rounded-full">
+                            {state}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Description */}
               <div className="space-y-3">
                 <p className="text-sm font-medium">Share your story</p>
