@@ -182,6 +182,47 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
     
     setStopName('');
     setStopCoords(null);
+
+    // Auto-trigger route calculation if start and end are set
+    // Note: triggerRouteCalculation will be called after state updates, 
+    // but we need to include the new waypoint manually
+    if (startLocation && endLocation) {
+      setIsLoadingRoute(true);
+      try {
+        const waypointPoints: RoutePoint[] = [...activeTrip.waypoints, newStop].map(w => ({
+          latitude: w.lat,
+          longitude: w.lng,
+          name: w.name,
+        }));
+
+        const route = await fetchRoute(
+          { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
+          { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+          waypointPoints
+        );
+
+        if (route) {
+          setRouteData(route);
+          const states = getStatesFromCoordinates(route.coordinates);
+          setDerivedStates(states);
+          
+          updateRoutePreview({
+            startPoint: { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
+            endPoint: { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+            routeData: route,
+          });
+          
+          toast({
+            title: 'Route updated!',
+            description: `${formatRouteMiles(route.distance)} miles`,
+          });
+        }
+      } catch (error) {
+        console.error('Error calculating route:', error);
+      } finally {
+        setIsLoadingRoute(false);
+      }
+    }
   };
 
   const handleRemoveRouteStop = async (id: string, name: string) => {
