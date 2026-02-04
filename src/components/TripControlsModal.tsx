@@ -240,19 +240,26 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   };
 
   const triggerRouteCalculation = async () => {
-    if (!startLocation || !endLocation) return;
+    // Need at least a start location AND (end location OR at least one stop)
+    if (!startLocation) return;
+    if (!endLocation && activeTrip.waypoints.length === 0) return;
 
     setIsLoadingRoute(true);
     try {
-      const waypointPoints: RoutePoint[] = activeTrip.waypoints.map(w => ({
-        latitude: w.lat,
-        longitude: w.lng,
-        name: w.name,
-      }));
+      // If no end location, use the last stop as the endpoint
+      const lastStop = activeTrip.waypoints[activeTrip.waypoints.length - 1];
+      const routeEnd = endLocation 
+        ? { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name }
+        : { latitude: lastStop.lat, longitude: lastStop.lng, name: lastStop.name };
+
+      // Build waypoints (excluding the endpoint if it's the last stop)
+      const waypointPoints: RoutePoint[] = endLocation 
+        ? activeTrip.waypoints.map(w => ({ latitude: w.lat, longitude: w.lng, name: w.name }))
+        : activeTrip.waypoints.slice(0, -1).map(w => ({ latitude: w.lat, longitude: w.lng, name: w.name }));
 
       const route = await fetchRoute(
         { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
-        { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+        routeEnd,
         waypointPoints
       );
 
@@ -263,7 +270,9 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
         
         updateRoutePreview({
           startPoint: { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name },
-          endPoint: { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name },
+          endPoint: endLocation 
+            ? { latitude: endLocation.latitude, longitude: endLocation.longitude, name: endLocation.name }
+            : { latitude: lastStop.lat, longitude: lastStop.lng, name: lastStop.name },
           routeData: route,
         });
       }
