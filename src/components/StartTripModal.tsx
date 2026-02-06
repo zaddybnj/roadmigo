@@ -1,30 +1,49 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Navigation, Sparkles } from 'lucide-react';
+import { X, Navigation, Sparkles } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
+import { LocationSearch } from '@/components/LocationSearch';
 
 interface StartTripModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface LocationResult {
+  name: string;
+  displayName: string;
+  latitude: number;
+  longitude: number;
+}
+
 export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
   const { startTrip } = useTrip();
   const [title, setTitle] = useState('');
-  const [startLocation, setStartLocation] = useState('');
+  const [startLocationText, setStartLocationText] = useState('');
+  const [startLocation, setStartLocation] = useState<LocationResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleLocationSelect = (location: LocationResult) => {
+    setStartLocation(location);
+    setStartLocationText(location.name);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     
     setIsSubmitting(true);
-    startTrip(title.trim(), startLocation.trim() || 'Unknown Location');
+    await startTrip(
+      title.trim(),
+      startLocationText.trim() || 'Unknown Location',
+      startLocation ? { latitude: startLocation.latitude, longitude: startLocation.longitude } : undefined
+    );
     
     setTimeout(() => {
       setIsSubmitting(false);
       setTitle('');
-      setStartLocation('');
+      setStartLocationText('');
+      setStartLocation(null);
       onClose();
     }, 500);
   };
@@ -88,21 +107,28 @@ export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
                 </div>
               </div>
 
-              {/* Start Location */}
+              {/* Start Location - Geocoded */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Starting Location
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={startLocation}
-                    onChange={(e) => setStartLocation(e.target.value)}
-                    placeholder="e.g., San Diego, CA"
-                    className="w-full pl-11 pr-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
+                <LocationSearch
+                  value={startLocationText}
+                  onChange={(v) => {
+                    setStartLocationText(v);
+                    // Clear geocoded result if user types manually
+                    if (startLocation && v !== startLocation.name) {
+                      setStartLocation(null);
+                    }
+                  }}
+                  onLocationSelect={handleLocationSelect}
+                  placeholder="Search for your starting point..."
+                />
+                {startLocation && (
+                  <p className="text-xs text-primary mt-1.5 flex items-center gap-1">
+                    📍 {startLocation.displayName}
+                  </p>
+                )}
               </div>
 
               {/* Tips */}
