@@ -62,7 +62,7 @@ const InstallPage = () => {
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">App Installed!</h1>
             <p className="text-muted-foreground">
-              RV Nomad is installed and ready to use
+              Roadmigo is installed and ready to use
             </p>
           </div>
 
