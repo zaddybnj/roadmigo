@@ -13,6 +13,7 @@ export interface ActiveTrip {
   title: string;
   startDate: string;
   startLocation: string;
+  startCoords: { latitude: number; longitude: number } | null;
   currentMiles: number;
   statesVisited: string[];
   daysOnRoad: number;
