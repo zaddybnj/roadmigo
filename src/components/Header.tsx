@@ -18,7 +18,7 @@ export const Header = ({ title, showLogo = false }: HeaderProps) => {
           >
             <span className="text-2xl">🚐</span>
             <span className="font-display font-bold text-xl text-gradient-sunset">
-              RV Nomad
+              Roadmigo
             </span>
           </motion.div>
         ) : (
