@@ -175,18 +175,6 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
     }
   }, [activeTrip]);
 
-  if (!activeTrip) return null;
-
-  // Build start point from active trip's stored start location
-  const tripStartPoint = activeTrip.startCoords 
-    ? { latitude: activeTrip.startCoords.latitude, longitude: activeTrip.startCoords.longitude, name: activeTrip.startLocation }
-    : null;
-
-  const handleSaveNotes = async () => {
-    await updateNotes(notesInput);
-    toast({ title: 'Notes saved', description: 'Your trip notes have been updated' });
-  };
-
   // Auto-calculate route when we have start + a new stop or end location
   const calculateRouteAndMiles = useCallback(async (
     start: RoutePoint,
@@ -210,6 +198,18 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
       console.error('Route calculation error:', error);
     }
   }, [updateMiles, toast]);
+
+  if (!activeTrip) return null;
+
+  // Build start point from active trip's stored start location
+  const tripStartPoint = activeTrip.startCoords 
+    ? { latitude: activeTrip.startCoords.latitude, longitude: activeTrip.startCoords.longitude, name: activeTrip.startLocation }
+    : null;
+
+  const handleSaveNotes = async () => {
+    await updateNotes(notesInput);
+    toast({ title: 'Notes saved', description: 'Your trip notes have been updated' });
+  };
 
   const handleAddRouteStop = async () => {
     if (!stopName.trim() || !stopCoords) {
