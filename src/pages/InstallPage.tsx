@@ -83,7 +83,7 @@ const InstallPage = () => {
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-3xl">🚐</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Install RV Nomad</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Install Roadmigo</h1>
           <p className="text-muted-foreground">
             Add to your home screen for the best experience
           </p>

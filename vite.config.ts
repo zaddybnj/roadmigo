@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "RV Nomad - Track Your Adventures",
-        short_name: "RV Nomad",
+        name: "Roadmigo - Track Your Adventures",
+        short_name: "Roadmigo",
         description: "The ultimate gamified social platform for RV travelers. Track trips, earn badges, and connect with fellow nomads.",
         theme_color: "#161b22",
         background_color: "#0d1117",
