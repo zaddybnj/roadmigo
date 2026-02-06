@@ -52,6 +52,7 @@ const App = () => (
                     <Route path="/wrapped" element={<ProtectedRoute><WrappedPage /></ProtectedRoute>} />
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+                    <Route path="/install" element={<InstallPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   <BottomNav />
