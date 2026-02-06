@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.ab9343348e6b4e479395aeb7fbc72ba4',
+  appId: 'app.roadmigo',
   appName: 'RV Nomad',
   webDir: 'dist',
   server: {
