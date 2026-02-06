@@ -192,11 +192,21 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        setActiveTrip({
+      // Try to extract start coords from route data
+      let startCoords: { latitude: number; longitude: number } | null = null;
+      if (activeDbTrip.route && typeof activeDbTrip.route === 'object' && !Array.isArray(activeDbTrip.route)) {
+        const rd = activeDbTrip.route as any;
+        if (rd.startCoords) {
+          startCoords = rd.startCoords;
+        }
+      }
+
+      setActiveTrip({
           id: activeDbTrip.id,
           title: activeDbTrip.title,
           startDate: activeDbTrip.start_date,
-          startLocation: '', // Not stored in DB currently
+          startLocation: (activeDbTrip.route as any)?.startLocationName || '',
+          startCoords,
           currentMiles: activeDbTrip.distance || 0,
           statesVisited: activeDbTrip.states || [],
           daysOnRoad: Math.max(1, Math.ceil(
