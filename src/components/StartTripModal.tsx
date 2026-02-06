@@ -23,17 +23,20 @@ export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
   const [startLocation, setStartLocation] = useState<LocationResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handleLocationSelect = (location: LocationResult) => {
+    setStartLocation(location);
+    setStartLocationText(location.name);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     
     setIsSubmitting(true);
-    
-    // Pass location data with coordinates if available
     await startTrip(
-      title.trim(), 
-      startLocation?.name || startLocationText.trim() || 'Unknown Location',
-      startLocation ? { latitude: startLocation.latitude, longitude: startLocation.longitude, name: startLocation.name } : undefined
+      title.trim(),
+      startLocationText.trim() || 'Unknown Location',
+      startLocation ? { latitude: startLocation.latitude, longitude: startLocation.longitude } : undefined
     );
     
     setTimeout(() => {
@@ -104,28 +107,25 @@ export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
                 </div>
               </div>
 
-              {/* Start Location with geocoding */}
+              {/* Start Location - Geocoded */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Starting Location
                 </label>
-                <div className="relative">
-                  <div className="absolute left-3 top-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
-                    <span className="text-primary-foreground text-xs font-bold">S</span>
-                  </div>
-                  <LocationSearch
-                    value={startLocationText}
-                    onChange={setStartLocationText}
-                    onLocationSelect={(loc) => {
-                      setStartLocation(loc);
-                      setStartLocationText(loc.name);
-                    }}
-                    placeholder="Search for your starting city..."
-                    className="[&_input]:pl-12"
-                  />
-                </div>
+                <LocationSearch
+                  value={startLocationText}
+                  onChange={(v) => {
+                    setStartLocationText(v);
+                    // Clear geocoded result if user types manually
+                    if (startLocation && v !== startLocation.name) {
+                      setStartLocation(null);
+                    }
+                  }}
+                  onLocationSelect={handleLocationSelect}
+                  placeholder="Search for your starting point..."
+                />
                 {startLocation && (
-                  <p className="text-xs text-muted-foreground mt-1 pl-1">
+                  <p className="text-xs text-primary mt-1.5 flex items-center gap-1">
                     📍 {startLocation.displayName}
                   </p>
                 )}
@@ -135,7 +135,7 @@ export const StartTripModal = ({ isOpen, onClose }: StartTripModalProps) => {
               <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4">
                 <p className="text-sm text-secondary font-medium mb-1">💡 Pro tip</p>
                 <p className="text-xs text-muted-foreground">
-                  Your starting location will appear on the map and be used for route calculations.
+                  You can add photos, update mileage, and log states visited during your trip.
                 </p>
               </div>
 

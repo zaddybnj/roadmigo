@@ -38,13 +38,12 @@ export const LocationSearch = ({
 
     setIsLoading(true);
     try {
-      // Use edge function proxy for geocoding to avoid CORS issues
+      // Using Nominatim (OpenStreetMap) - free geocoding API
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/geocode?q=${encodeURIComponent(query)}`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5`,
         {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
         }
       );

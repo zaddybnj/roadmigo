@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Milestone, getCategoryInfo } from '@/types/milestone';
 import { RouteData, formatRouteMiles, formatRouteDuration } from '@/lib/routing';
 import { Navigation } from 'lucide-react';
-import { Waypoint, RoutePreview } from '@/context/TripContext';
+import { Waypoint } from '@/context/TripContext';
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
 
@@ -13,7 +13,6 @@ interface USMapProps {
   milestones?: Milestone[];
   routeInfo?: RouteData | null;
   activeStops?: Waypoint[]; // For showing stops during an active trip
-  routePreview?: RoutePreview; // For showing start/end pins before route is calculated
 }
 
 // State FIPS to abbreviation mapping
@@ -31,25 +30,20 @@ const stateAbbreviations: { [key: string]: string } = {
   '56': 'WY',
 };
 
-export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops = [], routePreview }: USMapProps) => {
+export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops = [] }: USMapProps) => {
   const [hoveredMilestone, setHoveredMilestone] = useState<string | null>(null);
   const [hoveredStop, setHoveredStop] = useState<string | null>(null);
 
   // Filter milestones that have coordinates
   const geoMilestones = milestones.filter(m => m.latitude && m.longitude);
 
-  // Use route from routePreview if available, otherwise use routeInfo
-  const effectiveRouteData = routePreview?.routeData || routeInfo;
-  const effectiveStartPoint = routePreview?.startPoint || routeInfo?.startPoint;
-  const effectiveEndPoint = routePreview?.endPoint || routeInfo?.endPoint;
-
   // Convert route coordinates to line segments for react-simple-maps
   const routeSegments: Array<{ from: [number, number]; to: [number, number] }> = [];
-  if (effectiveRouteData?.coordinates && effectiveRouteData.coordinates.length > 1) {
-    for (let i = 0; i < effectiveRouteData.coordinates.length - 1; i++) {
+  if (routeInfo?.coordinates && routeInfo.coordinates.length > 1) {
+    for (let i = 0; i < routeInfo.coordinates.length - 1; i++) {
       routeSegments.push({
-        from: effectiveRouteData.coordinates[i],
-        to: effectiveRouteData.coordinates[i + 1],
+        from: routeInfo.coordinates[i],
+        to: routeInfo.coordinates[i + 1],
       });
     }
   }
@@ -72,12 +66,12 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
       className="w-full aspect-[1.6/1] relative"
     >
       {/* Route info badge */}
-      {effectiveRouteData && (
+      {routeInfo && (
         <div className="absolute top-2 left-2 z-10 bg-card/90 backdrop-blur rounded-lg px-3 py-1.5 flex items-center gap-2">
           <Navigation className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium">{formatRouteMiles(effectiveRouteData.distance)} mi</span>
+          <span className="text-sm font-medium">{formatRouteMiles(routeInfo.distance)} mi</span>
           <span className="text-muted-foreground">•</span>
-          <span className="text-sm text-muted-foreground">{formatRouteDuration(effectiveRouteData.duration)}</span>
+          <span className="text-sm text-muted-foreground">{formatRouteDuration(routeInfo.duration)}</span>
         </div>
       )}
 
@@ -86,22 +80,6 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
         projectionConfig={{ scale: 1000 }}
         className="w-full h-full"
       >
-        {/* SVG Definitions for glowing route effect */}
-        <defs>
-          <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(152, 60%, 45%)" />
-            <stop offset="50%" stopColor="hsl(42, 95%, 55%)" />
-            <stop offset="100%" stopColor="hsl(32, 95%, 50%)" />
-          </linearGradient>
-          <filter id="routeGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        
         <Geographies geography={geoUrl}>
           {({ geographies }) =>
             geographies.map((geo) => {
@@ -138,47 +116,28 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
             from={segment.from}
             to={segment.to}
             stroke="hsl(220, 80%, 55%)"
-            strokeWidth={1.5}
+            strokeWidth={2}
             strokeLinecap="round"
-            strokeDasharray="4 3"
+            strokeDasharray="6 4"
           />
         ))}
 
-        {/* Route line segments with subtle glow effect */}
-        {routeSegments.length > 0 && (
-          <g filter="url(#routeGlow)">
-            {routeSegments.map((segment, i) => (
-              <Line
-                key={`route-glow-${i}`}
-                from={segment.from}
-                to={segment.to}
-                stroke="url(#routeGradient)"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-              />
-            ))}
-          </g>
-        )}
-        
-        {/* Route line segments - main line on top */}
+        {/* Route line segments */}
         {routeSegments.map((segment, i) => (
           <Line
             key={`route-${i}`}
             from={segment.from}
             to={segment.to}
-            stroke="url(#routeGradient)"
-            strokeWidth={1.5}
+            stroke="hsl(32, 95%, 50%)"
+            strokeWidth={2.5}
             strokeLinecap="round"
           />
         ))}
 
-        {/* Start marker - use effectiveStartPoint */}
-        {effectiveStartPoint && (
-          <Marker coordinates={[effectiveStartPoint.longitude, effectiveStartPoint.latitude]}>
-            <g filter="url(#routeGlow)">
-              <circle r={7} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
-            </g>
-            <circle r={7} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+        {/* Start marker */}
+        {routeInfo?.startPoint && (
+          <Marker coordinates={[routeInfo.startPoint.longitude, routeInfo.startPoint.latitude]}>
+            <circle r={6} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
             <text
               textAnchor="middle"
               y={3}
@@ -191,8 +150,8 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
           </Marker>
         )}
 
-        {/* Waypoint markers - use effectiveRouteData */}
-        {effectiveRouteData?.waypoints?.map((waypoint, index) => (
+        {/* Waypoint markers */}
+        {routeInfo?.waypoints?.map((waypoint, index) => (
           <Marker key={`waypoint-${index}`} coordinates={[waypoint.longitude, waypoint.latitude]}>
             <circle r={5} fill="hsl(220, 80%, 60%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
             <text
@@ -207,13 +166,10 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
           </Marker>
         ))}
 
-        {/* End marker - use effectiveEndPoint */}
-        {effectiveEndPoint && (
-          <Marker coordinates={[effectiveEndPoint.longitude, effectiveEndPoint.latitude]}>
-            <g filter="url(#routeGlow)">
-              <circle r={7} fill="hsl(32, 95%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
-            </g>
-            <circle r={7} fill="hsl(32, 95%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+        {/* End marker */}
+        {routeInfo?.endPoint && (
+          <Marker coordinates={[routeInfo.endPoint.longitude, routeInfo.endPoint.latitude]}>
+            <circle r={6} fill="hsl(0, 70%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
             <text
               textAnchor="middle"
               y={3}
@@ -259,7 +215,7 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
           );
         })}
 
-        {/* Milestone Markers - Small dots with emoji */}
+        {/* Milestone Markers */}
         {geoMilestones.map((milestone) => {
           const catInfo = getCategoryInfo(milestone.category);
           const isHovered = hoveredMilestone === milestone.id;
@@ -271,21 +227,34 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
             >
               <g
                 style={{ cursor: 'pointer' }}
+                transform="translate(-12, -24)"
                 onMouseEnter={() => setHoveredMilestone(milestone.id)}
                 onMouseLeave={() => setHoveredMilestone(null)}
               >
-                {/* Circle background */}
-                <circle
-                  r={isHovered ? 6 : 5}
+                {/* Invisible larger hit area to prevent flickering */}
+                <rect
+                  x="-4"
+                  y="-4"
+                  width="32"
+                  height="40"
+                  fill="transparent"
+                  style={{ pointerEvents: 'all' }}
+                />
+                {/* Pin shape */}
+                <path
+                  d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20s12-12.8 12-20c0-6.6-5.4-12-12-12z"
                   fill={isHovered ? 'hsl(32, 95%, 55%)' : 'hsl(32, 95%, 44%)'}
                   stroke="hsl(220, 20%, 15%)"
-                  strokeWidth={1}
+                  strokeWidth="1"
+                  style={{ pointerEvents: 'none' }}
                 />
-                {/* Emoji icon */}
+                {/* Emoji icon inside pin */}
                 <text
+                  x="12"
+                  y="14"
                   textAnchor="middle"
-                  y={3}
-                  fontSize={6}
+                  fontSize="10"
+                  style={{ pointerEvents: 'none' }}
                 >
                   {catInfo.icon}
                 </text>
