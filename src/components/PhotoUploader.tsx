@@ -36,13 +36,15 @@ export const PhotoUploader = ({ onPhotosAdd, maxPhotos = 20, currentCount = 0 }:
 
   const handleUrlAdd = () => {
     if (urlInput.trim() && urls.length < remainingSlots) {
-      // Basic URL validation
       try {
-        new URL(urlInput);
+        const url = new URL(urlInput);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          return;
+        }
         setUrls(prev => [...prev, urlInput.trim()]);
         setUrlInput('');
       } catch {
-        // Invalid URL
+        // Invalid URL format
       }
     }
   };
