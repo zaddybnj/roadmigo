@@ -367,6 +367,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCompletedTrips(prev => [completedTrip, ...prev]);
     setActiveTrip(null);
+    setRoutePreview(null);
 
     // Update profile stats
     await supabase
