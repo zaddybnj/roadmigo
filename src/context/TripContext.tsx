@@ -142,6 +142,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [completedTrips, setCompletedTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [likedTripIds, setLikedTripIds] = useState<Set<string>>(new Set());
+  const [routePreview, setRoutePreview] = useState<RouteData | null>(null);
 
   const isTracking = activeTrip !== null;
 
