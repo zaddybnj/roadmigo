@@ -310,6 +310,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const endTrip = useCallback(async (description: string, privacy: Trip['privacy'], routeData?: RouteData, derivedStates?: string[]) => {
     if (!activeTrip || !user || !profile) throw new Error('No active trip to end');
+    const truncatedDescription = description.slice(0, 1000);
 
     const endDate = new Date().toISOString();
     const nights = Math.max(0, activeTrip.daysOnRoad - 1);
