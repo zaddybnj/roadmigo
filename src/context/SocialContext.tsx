@@ -144,7 +144,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Fetch all public profiles (for discover/feed)
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles' as any)
         .select('*')
         .neq('user_id', user.id)
         .limit(50);
