@@ -142,7 +142,7 @@ const Section = ({ title, icon, count, defaultOpen, children }: {
 };
 
 export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) => {
-  const { activeTrip, endTrip, updateMiles, updateNotes, addMilestone, removeMilestone, addRouteStop, removeRouteStop } = useTrip();
+  const { activeTrip, endTrip, updateMiles, updateNotes, addMilestone, removeMilestone, addRouteStop, removeRouteStop, setRoutePreview } = useTrip();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -189,6 +189,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
         const states = getStatesFromCoordinates(route.coordinates);
         setDerivedStates(states);
         setRouteData(route);
+        setRoutePreview(route);
         toast({
           title: 'Route updated',
           description: `${miles.toLocaleString()} miles through ${states.length} state${states.length !== 1 ? 's' : ''}`,
