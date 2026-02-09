@@ -189,6 +189,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
         const states = getStatesFromCoordinates(route.coordinates);
         setDerivedStates(states);
         setRouteData(route);
+        setRoutePreview(route);
         toast({
           title: 'Route updated',
           description: `${miles.toLocaleString()} miles through ${states.length} state${states.length !== 1 ? 's' : ''}`,
