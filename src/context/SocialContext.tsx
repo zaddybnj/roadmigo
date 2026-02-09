@@ -63,7 +63,7 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
 // Convert DB profile to SocialUser
 const profileToSocialUser = (
-  profile: DbProfile,
+  profile: PublicProfile | DbProfile,
   isFollowing: boolean,
   followersCount: number,
   followingCount: number
