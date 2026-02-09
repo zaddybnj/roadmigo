@@ -13,7 +13,7 @@ import { PhotoUploader } from '@/components/PhotoUploader';
 import { getCategoryInfo } from '@/types/milestone';
 
 const ActiveTripPage = () => {
-  const { activeTrip, isTracking, addPhoto } = useTrip();
+  const { activeTrip, isTracking, addPhoto, routePreview } = useTrip();
   const navigate = useNavigate();
   const [showControlsModal, setShowControlsModal] = useState(false);
 
