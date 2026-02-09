@@ -536,6 +536,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                 <textarea
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
+                  maxLength={2000}
                   placeholder="Jot down memories, places, things to remember..."
                   rows={4}
                   className="w-full px-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-base"
