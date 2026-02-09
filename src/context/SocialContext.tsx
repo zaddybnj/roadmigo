@@ -148,7 +148,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .from('public_profiles' as any)
         .select('*')
         .neq('user_id', user.id)
-        .limit(50);
+        .limit(50) as { data: PublicProfile[] | null };
 
       // Get follower/following counts for each profile
       const socialUsers = await Promise.all((profiles || []).map(async (p) => {
