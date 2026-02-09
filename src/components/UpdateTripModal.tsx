@@ -477,6 +477,7 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
                 <Textarea
                   value={milestoneNotes}
                   onChange={(e) => setMilestoneNotes(e.target.value)}
+                  maxLength={200}
                   placeholder="Add notes (optional)..."
                   rows={2}
                   className="resize-none"
