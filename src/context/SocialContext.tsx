@@ -376,7 +376,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const { data: profiles } = await supabase
       .from('public_profiles' as any)
       .select('user_id, display_name, avatar_url')
-      .in('user_id', userIds);
+      .in('user_id', userIds) as { data: Pick<PublicProfile, 'user_id' | 'display_name' | 'avatar_url'>[] | null };
 
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
 
