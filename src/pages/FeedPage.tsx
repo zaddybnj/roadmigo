@@ -34,8 +34,8 @@ const FeedPage = () => {
   const filteredTrips = useMemo(() => {
     let trips = completedTrips.filter(trip => {
       // Filter by privacy
-      if (trip.privacy === 'private' && trip.userId !== '1') return false;
-      if (trip.privacy === 'friends' && trip.userId !== '1' && !following.includes(trip.userId)) return false;
+      if (trip.privacy === 'private' && trip.userId !== user?.id) return false;
+      if (trip.privacy === 'friends' && trip.userId !== user?.id && !following.includes(trip.userId)) return false;
       return true;
     });
 
