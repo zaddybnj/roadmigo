@@ -78,6 +78,7 @@ export const CommentSection = ({ tripId }: CommentSectionProps) => {
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
+            maxLength={500}
             placeholder="Add a comment..."
             className="w-full py-2 px-3 pr-10 bg-muted rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
