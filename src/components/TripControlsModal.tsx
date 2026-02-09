@@ -250,16 +250,17 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   };
 
   const handleAddMilestone = async () => {
-    if (!milestoneName.trim()) {
+    const trimmedName = milestoneName.trim().slice(0, 100);
+    if (!trimmedName) {
       toast({ title: 'Name required', description: 'Please enter a name for this spot', variant: 'destructive' });
       return;
     }
 
     const newMilestone: Milestone = {
       id: crypto.randomUUID(),
-      name: milestoneName.trim(),
+      name: trimmedName,
       category: milestoneCategory,
-      notes: milestoneNotes.trim() || undefined,
+      notes: milestoneNotes.trim().slice(0, 200) || undefined,
       timestamp: new Date().toISOString(),
       latitude: milestoneCoords?.lat,
       longitude: milestoneCoords?.lng,
@@ -512,6 +513,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                 <Input
                   value={milestoneNotes}
                   onChange={(e) => setMilestoneNotes(e.target.value)}
+                  maxLength={200}
                   placeholder="Quick note (optional)..."
                   className="h-11"
                 />
@@ -535,6 +537,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                 <textarea
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
+                  maxLength={2000}
                   placeholder="Jot down memories, places, things to remember..."
                   rows={4}
                   className="w-full px-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none text-base"

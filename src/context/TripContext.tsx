@@ -310,6 +310,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const endTrip = useCallback(async (description: string, privacy: Trip['privacy'], routeData?: RouteData, derivedStates?: string[]) => {
     if (!activeTrip || !user || !profile) throw new Error('No active trip to end');
+    const truncatedDescription = description.slice(0, 1000);
 
     const endDate = new Date().toISOString();
     const nights = Math.max(0, activeTrip.daysOnRoad - 1);
@@ -337,7 +338,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data, error } = await supabase
       .from('trips')
       .update({
-        description,
+        description: truncatedDescription,
         privacy,
         end_date: endDate,
         status: 'completed',
@@ -405,12 +406,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateNotes = useCallback(async (notes: string) => {
     if (!activeTrip) return;
 
+    const truncatedNotes = notes.slice(0, 2000);
+
     await supabase
       .from('trips')
-      .update({ notes })
+      .update({ notes: truncatedNotes })
       .eq('id', activeTrip.id);
 
-    setActiveTrip(prev => prev ? { ...prev, notes } : null);
+    setActiveTrip(prev => prev ? { ...prev, notes: truncatedNotes } : null);
   }, [activeTrip]);
 
   const addState = useCallback(async (state: string) => {
