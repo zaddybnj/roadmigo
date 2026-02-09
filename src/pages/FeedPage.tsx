@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Users } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import { useSocial } from '@/context/SocialContext';
+import { useAuth } from '@/context/AuthContext';
 import { ActiveTripBanner } from '@/components/ActiveTripBanner';
 import { StartTripModal } from '@/components/StartTripModal';
 import { OnboardingModal, useOnboarding } from '@/components/OnboardingModal';
@@ -15,6 +16,7 @@ import { Link } from 'react-router-dom';
 const FeedPage = () => {
   const { completedTrips, isTracking, loading: tripsLoading } = useTrip();
   const { following, loading: socialLoading } = useSocial();
+  const { user } = useAuth();
   const [showStartModal, setShowStartModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FeedFilter>('all');
   const { showOnboarding, completeOnboarding, isReady } = useOnboarding();
