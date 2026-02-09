@@ -5,6 +5,7 @@ import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
 type DbProfile = Tables<'profiles'>;
+type PublicProfile = Omit<DbProfile, 'is_premium' | 'premium_expires_at'>;
 type DbComment = Tables<'comments'>;
 
 export interface SocialUser {
