@@ -112,7 +112,8 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
   };
 
   const handleAddMilestone = async () => {
-    if (!milestoneName.trim()) {
+    const trimmedName = milestoneName.trim().slice(0, 100);
+    if (!trimmedName) {
       toast({
         title: 'Name required',
         description: 'Please enter a name for this milestone',
@@ -123,9 +124,9 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
 
     const newMilestone: Milestone = {
       id: crypto.randomUUID(),
-      name: milestoneName.trim(),
+      name: trimmedName,
       category: milestoneCategory,
-      notes: milestoneNotes.trim() || undefined,
+      notes: milestoneNotes.trim().slice(0, 200) || undefined,
       timestamp: new Date().toISOString(),
       latitude: milestoneCoords?.lat,
       longitude: milestoneCoords?.lng,

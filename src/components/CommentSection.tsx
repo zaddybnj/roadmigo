@@ -35,7 +35,7 @@ export const CommentSection = ({ tripId }: CommentSectionProps) => {
     if (!newComment.trim() || submitting) return;
     
     setSubmitting(true);
-    await addComment(tripId, newComment.trim());
+    await addComment(tripId, newComment.trim().slice(0, 500));
     setNewComment('');
     
     // Refresh comments
