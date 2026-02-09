@@ -258,9 +258,9 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
 
     const newMilestone: Milestone = {
       id: crypto.randomUUID(),
-      name: milestoneName.trim(),
+      name: trimmedName,
       category: milestoneCategory,
-      notes: milestoneNotes.trim() || undefined,
+      notes: milestoneNotes.trim().slice(0, 200) || undefined,
       timestamp: new Date().toISOString(),
       latitude: milestoneCoords?.lat,
       longitude: milestoneCoords?.lng,

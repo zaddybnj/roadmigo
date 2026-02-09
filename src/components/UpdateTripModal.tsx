@@ -498,6 +498,7 @@ export const UpdateTripModal = ({ isOpen, onClose }: UpdateTripModalProps) => {
               <Textarea
                 value={notesInput}
                 onChange={(e) => setNotesInput(e.target.value)}
+                maxLength={2000}
                 placeholder="Write your travel notes, memories, favorite spots, tips for other travelers..."
                 rows={8}
                 className="resize-none"

@@ -338,7 +338,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data, error } = await supabase
       .from('trips')
       .update({
-        description,
+        description: truncatedDescription,
         privacy,
         end_date: endDate,
         status: 'completed',
