@@ -41,7 +41,7 @@ const FeedPage = () => {
 
     switch (activeFilter) {
       case 'following':
-        return trips.filter(t => following.includes(t.userId) || t.userId === '1');
+        return trips.filter(t => following.includes(t.userId) || t.userId === user?.id);
       case 'trending':
         return [...trips].sort((a, b) => b.likes - a.likes);
       case 'featured':

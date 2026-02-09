@@ -120,7 +120,7 @@ const TripDetailPage = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           <Link 
-            to={trip.userId === '1' ? '/profile' : `/user/${trip.userId}`}
+            to={trip.userId === user?.id ? '/profile' : `/user/${trip.userId}`}
             className="flex items-center gap-3 p-3 bg-card rounded-xl card-elevated hover:bg-muted/50 transition-colors"
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">

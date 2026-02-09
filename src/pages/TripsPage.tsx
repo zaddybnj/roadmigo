@@ -23,7 +23,7 @@ const TripsPage = () => {
   };
 
   // Filter only user's trips (id: 1) and by year
-  const myTrips = completedTrips.filter(t => t.userId === '1');
+  const myTrips = completedTrips.filter(t => t.userId === user?.id);
   const filteredTrips = filter === 'All' 
     ? myTrips 
     : myTrips.filter(t => new Date(t.startDate).getFullYear().toString() === filter);
