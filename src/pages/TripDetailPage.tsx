@@ -19,6 +19,7 @@ const TripDetailPage = () => {
   const navigate = useNavigate();
   const { completedTrips } = useTrip();
   const { isTripLiked, likeTrip, unlikeTrip } = useSocial();
+  const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   
   const trip = completedTrips.find(t => t.id === id);
