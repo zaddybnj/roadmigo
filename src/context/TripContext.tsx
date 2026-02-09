@@ -405,12 +405,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateNotes = useCallback(async (notes: string) => {
     if (!activeTrip) return;
 
+    const truncatedNotes = notes.slice(0, 2000);
+
     await supabase
       .from('trips')
-      .update({ notes })
+      .update({ notes: truncatedNotes })
       .eq('id', activeTrip.id);
 
-    setActiveTrip(prev => prev ? { ...prev, notes } : null);
+    setActiveTrip(prev => prev ? { ...prev, notes: truncatedNotes } : null);
   }, [activeTrip]);
 
   const addState = useCallback(async (state: string) => {
