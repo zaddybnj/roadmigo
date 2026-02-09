@@ -512,6 +512,7 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
                 <Input
                   value={milestoneNotes}
                   onChange={(e) => setMilestoneNotes(e.target.value)}
+                  maxLength={200}
                   placeholder="Quick note (optional)..."
                   className="h-11"
                 />
