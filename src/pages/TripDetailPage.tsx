@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import { useSocial } from '@/context/SocialContext';
+import { useAuth } from '@/context/AuthContext';
 import { USMap } from '@/components/USMap';
 import { CommentSection } from '@/components/CommentSection';
 import { PhotoGallery } from '@/components/PhotoGallery';
