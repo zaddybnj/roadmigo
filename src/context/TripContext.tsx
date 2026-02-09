@@ -467,12 +467,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newWaypoints = [...activeTrip.waypoints, stop];
     
-    // Store waypoints in the route JSONB column as { stops: [...] }
-    const routePayload = { stops: newWaypoints };
+    // Store waypoints in the route JSONB column, preserving startCoords & startLocationName
+    const existingRouteData = activeTrip.startCoords 
+      ? { startCoords: activeTrip.startCoords, startLocationName: activeTrip.startLocation, stops: newWaypoints }
+      : { stops: newWaypoints };
 
     await supabase
       .from('trips')
-      .update({ route: routePayload } as any)
+      .update({ route: existingRouteData } as any)
       .eq('id', activeTrip.id);
 
     setActiveTrip(prev => prev ? { ...prev, waypoints: newWaypoints } : null);
