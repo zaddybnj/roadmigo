@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Users } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
 import { useSocial } from '@/context/SocialContext';
+import { useAuth } from '@/context/AuthContext';
 import { ActiveTripBanner } from '@/components/ActiveTripBanner';
 import { StartTripModal } from '@/components/StartTripModal';
 import { OnboardingModal, useOnboarding } from '@/components/OnboardingModal';
@@ -15,6 +16,7 @@ import { Link } from 'react-router-dom';
 const FeedPage = () => {
   const { completedTrips, isTracking, loading: tripsLoading } = useTrip();
   const { following, loading: socialLoading } = useSocial();
+  const { user } = useAuth();
   const [showStartModal, setShowStartModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FeedFilter>('all');
   const { showOnboarding, completeOnboarding, isReady } = useOnboarding();
@@ -22,7 +24,7 @@ const FeedPage = () => {
   const isLoading = tripsLoading || socialLoading;
 
   // Calculate user stats from completed trips
-  const userTrips = completedTrips.filter(t => t.userId === '1');
+  const userTrips = completedTrips.filter(t => t.userId === user?.id);
   const totalMiles = userTrips.reduce((acc, t) => acc + t.distance, 0);
   const totalTrips = userTrips.length;
   const allStates = new Set(userTrips.flatMap(t => t.states));
@@ -32,14 +34,14 @@ const FeedPage = () => {
   const filteredTrips = useMemo(() => {
     let trips = completedTrips.filter(trip => {
       // Filter by privacy
-      if (trip.privacy === 'private' && trip.userId !== '1') return false;
-      if (trip.privacy === 'friends' && trip.userId !== '1' && !following.includes(trip.userId)) return false;
+      if (trip.privacy === 'private' && trip.userId !== user?.id) return false;
+      if (trip.privacy === 'friends' && trip.userId !== user?.id && !following.includes(trip.userId)) return false;
       return true;
     });
 
     switch (activeFilter) {
       case 'following':
-        return trips.filter(t => following.includes(t.userId) || t.userId === '1');
+        return trips.filter(t => following.includes(t.userId) || t.userId === user?.id);
       case 'trending':
         return [...trips].sort((a, b) => b.likes - a.likes);
       case 'featured':
