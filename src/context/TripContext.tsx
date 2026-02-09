@@ -516,6 +516,8 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addRouteStop,
       removeRouteStop,
       refreshTrips,
+      routePreview,
+      setRoutePreview,
     }}>
       {children}
     </TripContext.Provider>
