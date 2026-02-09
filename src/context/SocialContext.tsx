@@ -373,7 +373,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Fetch profiles for comment authors
     const userIds = [...new Set((comments || []).map(c => c.user_id))];
     const { data: profiles } = await supabase
-      .from('profiles')
+      .from('public_profiles' as any)
       .select('user_id, display_name, avatar_url')
       .in('user_id', userIds);
 
