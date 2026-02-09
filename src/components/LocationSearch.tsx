@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, MapPin, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ export const LocationSearch = ({
   const [results, setResults] = useState<LocationResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const searchLocations = useCallback(async (query: string) => {
     if (query.length < 3) {
@@ -38,7 +38,6 @@ export const LocationSearch = ({
 
     setIsLoading(true);
     try {
-      // Using Nominatim (OpenStreetMap) - free geocoding API
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5`,
         {
@@ -57,6 +56,7 @@ export const LocationSearch = ({
           longitude: parseFloat(item.lon),
         }));
         setResults(locations);
+        setShowResults(true);
       }
     } catch (error) {
       console.error('Location search error:', error);
@@ -67,22 +67,21 @@ export const LocationSearch = ({
   }, []);
 
   useEffect(() => {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
 
     if (value.length >= 3) {
-      const timer = setTimeout(() => {
+      debounceRef.current = setTimeout(() => {
         searchLocations(value);
       }, 400);
-      setDebounceTimer(timer);
     } else {
       setResults([]);
     }
 
     return () => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
     };
   }, [value, searchLocations]);

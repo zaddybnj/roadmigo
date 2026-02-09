@@ -353,6 +353,7 @@ export const EndTripModal = ({ isOpen, onClose }: EndTripModalProps) => {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  maxLength={1000}
                   placeholder="Tell us about your journey..."
                   rows={3}
                   className="w-full px-4 py-3 bg-muted rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
