@@ -250,7 +250,8 @@ export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) =
   };
 
   const handleAddMilestone = async () => {
-    if (!milestoneName.trim()) {
+    const trimmedName = milestoneName.trim().slice(0, 100);
+    if (!trimmedName) {
       toast({ title: 'Name required', description: 'Please enter a name for this spot', variant: 'destructive' });
       return;
     }
