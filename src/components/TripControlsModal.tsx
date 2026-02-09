@@ -142,7 +142,7 @@ const Section = ({ title, icon, count, defaultOpen, children }: {
 };
 
 export const TripControlsModal = ({ isOpen, onClose }: TripControlsModalProps) => {
-  const { activeTrip, endTrip, updateMiles, updateNotes, addMilestone, removeMilestone, addRouteStop, removeRouteStop } = useTrip();
+  const { activeTrip, endTrip, updateMiles, updateNotes, addMilestone, removeMilestone, addRouteStop, removeRouteStop, setRoutePreview } = useTrip();
   const navigate = useNavigate();
   const { toast } = useToast();
   
