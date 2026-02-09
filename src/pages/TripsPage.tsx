@@ -3,6 +3,7 @@ import { Header } from '@/components/Header';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Moon, ChevronRight } from 'lucide-react';
 import { useTrip } from '@/context/TripContext';
+import { useAuth } from '@/context/AuthContext';
 import { ActiveTripBanner } from '@/components/ActiveTripBanner';
 import { StartTripModal } from '@/components/StartTripModal';
 import { TripListItemSkeleton, StatCardSkeleton } from '@/components/skeletons';
@@ -11,6 +12,7 @@ import { Link } from 'react-router-dom';
 
 const TripsPage = () => {
   const { completedTrips, isTracking, loading } = useTrip();
+  const { user } = useAuth();
   const [showStartModal, setShowStartModal] = useState(false);
   const [filter, setFilter] = useState('All');
 
