@@ -417,7 +417,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Fetch from database
     const { data: profileData } = await supabase
-      .from('profiles')
+      .from('public_profiles' as any)
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
