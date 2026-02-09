@@ -24,7 +24,7 @@ const FeedPage = () => {
   const isLoading = tripsLoading || socialLoading;
 
   // Calculate user stats from completed trips
-  const userTrips = completedTrips.filter(t => t.userId === '1');
+  const userTrips = completedTrips.filter(t => t.userId === user?.id);
   const totalMiles = userTrips.reduce((acc, t) => acc + t.distance, 0);
   const totalTrips = userTrips.length;
   const allStates = new Set(userTrips.flatMap(t => t.states));
