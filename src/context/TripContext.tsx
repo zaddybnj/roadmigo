@@ -166,7 +166,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: profiles } = await supabase
         .from('public_profiles' as any)
         .select('user_id, display_name, avatar_url')
-        .in('user_id', userIds);
+        .in('user_id', userIds) as { data: { user_id: string; display_name: string; avatar_url: string | null }[] | null };
 
       const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
 

@@ -421,7 +421,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       .from('public_profiles' as any)
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle();
+      .maybeSingle() as { data: PublicProfile | null };
 
     if (!profileData) return undefined;
 
