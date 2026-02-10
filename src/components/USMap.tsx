@@ -1,6 +1,8 @@
-import { ComposableMap, Geographies, Geography, Marker, Line } from 'react-simple-maps';
+import { geoAlbersUsa, geoPath } from 'd3-geo';
+import { feature } from 'topojson-client';
+import type { Topology, GeometryCollection } from 'topojson-specification';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Milestone, getCategoryInfo } from '@/types/milestone';
 import { RouteData, formatRouteMiles, formatRouteDuration } from '@/lib/routing';
 import { Navigation } from 'lucide-react';
@@ -12,10 +14,9 @@ interface USMapProps {
   visitedStates: string[];
   milestones?: Milestone[];
   routeInfo?: RouteData | null;
-  activeStops?: Waypoint[]; // For showing stops during an active trip
+  activeStops?: Waypoint[];
 }
 
-// State FIPS to abbreviation mapping
 const stateAbbreviations: { [key: string]: string } = {
   '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA',
   '08': 'CO', '09': 'CT', '10': 'DE', '11': 'DC', '12': 'FL',
@@ -30,33 +31,65 @@ const stateAbbreviations: { [key: string]: string } = {
   '56': 'WY',
 };
 
+const WIDTH = 960;
+const HEIGHT = 600;
+
+const projection = geoAlbersUsa().scale(1200).translate([WIDTH / 2, HEIGHT / 2]);
+const pathGenerator = geoPath().projection(projection);
+
 export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops = [] }: USMapProps) => {
   const [hoveredMilestone, setHoveredMilestone] = useState<string | null>(null);
   const [hoveredStop, setHoveredStop] = useState<string | null>(null);
+  const [hoveredState, setHoveredState] = useState<string | null>(null);
+  const [topoData, setTopoData] = useState<Topology | null>(null);
 
-  // Filter milestones that have coordinates
+  useEffect(() => {
+    fetch(geoUrl)
+      .then(res => res.json())
+      .then((data: Topology) => setTopoData(data))
+      .catch(console.error);
+  }, []);
+
+  const states = useMemo(() => {
+    if (!topoData) return [];
+    const geom = topoData.objects.states as GeometryCollection;
+    return feature(topoData, geom).features;
+  }, [topoData]);
+
   const geoMilestones = milestones.filter(m => m.latitude && m.longitude);
 
-  // Convert route coordinates to line segments for react-simple-maps
-  const routeSegments: Array<{ from: [number, number]; to: [number, number] }> = [];
-  if (routeInfo?.coordinates && routeInfo.coordinates.length > 1) {
-    for (let i = 0; i < routeInfo.coordinates.length - 1; i++) {
-      routeSegments.push({
-        from: routeInfo.coordinates[i],
-        to: routeInfo.coordinates[i + 1],
-      });
-    }
-  }
+  // Project a [lng, lat] to SVG [x, y]
+  const project = (coords: [number, number]): [number, number] | null => {
+    const p = projection(coords);
+    return p ? [p[0], p[1]] : null;
+  };
 
-  // Create line segments between active stops (during active trip, before final route)
-  const activeStopSegments: Array<{ from: [number, number]; to: [number, number] }> = [];
-  if (activeStops.length > 1 && routeSegments.length === 0) {
-    for (let i = 0; i < activeStops.length - 1; i++) {
-      activeStopSegments.push({
-        from: [activeStops[i].lng, activeStops[i].lat],
-        to: [activeStops[i + 1].lng, activeStops[i + 1].lat],
-      });
-    }
+  // Build route polyline points
+  const routePoints = useMemo(() => {
+    if (!routeInfo?.coordinates?.length) return '';
+    return routeInfo.coordinates
+      .map(c => project(c))
+      .filter(Boolean)
+      .map(p => `${p![0]},${p![1]}`)
+      .join(' ');
+  }, [routeInfo?.coordinates]);
+
+  // Build active stop polyline points
+  const activeStopPoints = useMemo(() => {
+    if (activeStops.length < 2 || routePoints) return '';
+    return activeStops
+      .map(s => project([s.lng, s.lat]))
+      .filter(Boolean)
+      .map(p => `${p![0]},${p![1]}`)
+      .join(' ');
+  }, [activeStops, routePoints]);
+
+  if (!topoData) {
+    return (
+      <div className="w-full aspect-[1.6/1] flex items-center justify-center bg-muted/20 rounded-lg">
+        <span className="text-muted-foreground text-sm">Loading map...</span>
+      </div>
+    );
   }
 
   return (
@@ -65,7 +98,6 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
       animate={{ opacity: 1 }}
       className="w-full aspect-[1.6/1] relative"
     >
-      {/* Route info badge */}
       {routeInfo && (
         <div className="absolute top-2 left-2 z-10 bg-card/90 backdrop-blur rounded-lg px-3 py-1.5 flex items-center gap-2">
           <Navigation className="w-4 h-4 text-primary" />
@@ -75,209 +107,154 @@ export const USMap = ({ visitedStates, milestones = [], routeInfo, activeStops =
         </div>
       )}
 
-      <ComposableMap
-        projection="geoAlbersUsa"
-        projectionConfig={{ scale: 1000 }}
-        className="w-full h-full"
-      >
-        <Geographies geography={geoUrl}>
-          {({ geographies }) =>
-            geographies.map((geo) => {
-              const stateId = geo.id;
-              const stateAbbr = stateAbbreviations[stateId];
-              const isVisited = visitedStates.includes(stateAbbr);
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full h-full">
+        {/* State geometries */}
+        {states.map((geo) => {
+          const stateId = String(geo.id);
+          const stateAbbr = stateAbbreviations[stateId];
+          const isVisited = visitedStates.includes(stateAbbr);
+          const isHovered = hoveredState === stateId;
+          const d = pathGenerator(geo) || '';
 
-              return (
-                <Geography
-                  key={geo.rsmKey}
-                  geography={geo}
-                  fill={isVisited ? 'hsl(152, 45%, 35%)' : 'hsl(220, 15%, 25%)'}
-                  stroke="hsl(220, 20%, 15%)"
-                  strokeWidth={0.5}
-                  style={{
-                    default: { outline: 'none' },
-                    hover: {
-                      fill: isVisited ? 'hsl(152, 50%, 45%)' : 'hsl(220, 15%, 30%)',
-                      outline: 'none',
-                      cursor: 'pointer',
-                    },
-                    pressed: { outline: 'none' },
-                  }}
-                />
-              );
-            })
+          let fill = isVisited ? 'hsl(152, 45%, 35%)' : 'hsl(220, 15%, 25%)';
+          if (isHovered) {
+            fill = isVisited ? 'hsl(152, 50%, 45%)' : 'hsl(220, 15%, 30%)';
           }
-        </Geographies>
+
+          return (
+            <path
+              key={stateId}
+              d={d}
+              fill={fill}
+              stroke="hsl(220, 20%, 15%)"
+              strokeWidth={0.5}
+              style={{ cursor: 'pointer', outline: 'none' }}
+              onMouseEnter={() => setHoveredState(stateId)}
+              onMouseLeave={() => setHoveredState(null)}
+            />
+          );
+        })}
 
         {/* Active trip stop connection lines (dashed preview) */}
-        {activeStopSegments.map((segment, i) => (
-          <Line
-            key={`active-stop-${i}`}
-            from={segment.from}
-            to={segment.to}
+        {activeStopPoints && (
+          <polyline
+            points={activeStopPoints}
+            fill="none"
             stroke="hsl(220, 80%, 55%)"
             strokeWidth={2}
             strokeLinecap="round"
             strokeDasharray="6 4"
           />
-        ))}
+        )}
 
-        {/* Route line segments */}
-        {routeSegments.map((segment, i) => (
-          <Line
-            key={`route-${i}`}
-            from={segment.from}
-            to={segment.to}
+        {/* Route line */}
+        {routePoints && (
+          <polyline
+            points={routePoints}
+            fill="none"
             stroke="hsl(32, 95%, 50%)"
             strokeWidth={2.5}
             strokeLinecap="round"
           />
-        ))}
+        )}
 
         {/* Start marker */}
-        {routeInfo?.startPoint && (
-          <Marker coordinates={[routeInfo.startPoint.longitude, routeInfo.startPoint.latitude]}>
-            <circle r={6} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
-            <text
-              textAnchor="middle"
-              y={3}
-              fontSize={7}
-              fontWeight="bold"
-              fill="white"
-            >
-              S
-            </text>
-          </Marker>
-        )}
+        {routeInfo?.startPoint && (() => {
+          const p = project([routeInfo.startPoint.longitude, routeInfo.startPoint.latitude]);
+          if (!p) return null;
+          return (
+            <g>
+              <circle cx={p[0]} cy={p[1]} r={6} fill="hsl(152, 60%, 45%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+              <text x={p[0]} y={p[1] + 3} textAnchor="middle" fontSize={7} fontWeight="bold" fill="white">S</text>
+            </g>
+          );
+        })()}
 
         {/* Waypoint markers */}
-        {routeInfo?.waypoints?.map((waypoint, index) => (
-          <Marker key={`waypoint-${index}`} coordinates={[waypoint.longitude, waypoint.latitude]}>
-            <circle r={5} fill="hsl(220, 80%, 60%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
-            <text
-              textAnchor="middle"
-              y={3}
-              fontSize={6}
-              fontWeight="bold"
-              fill="white"
-            >
-              {index + 1}
-            </text>
-          </Marker>
-        ))}
+        {routeInfo?.waypoints?.map((waypoint, index) => {
+          const p = project([waypoint.longitude, waypoint.latitude]);
+          if (!p) return null;
+          return (
+            <g key={`waypoint-${index}`}>
+              <circle cx={p[0]} cy={p[1]} r={5} fill="hsl(220, 80%, 60%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+              <text x={p[0]} y={p[1] + 3} textAnchor="middle" fontSize={6} fontWeight="bold" fill="white">{index + 1}</text>
+            </g>
+          );
+        })}
 
         {/* End marker */}
-        {routeInfo?.endPoint && (
-          <Marker coordinates={[routeInfo.endPoint.longitude, routeInfo.endPoint.latitude]}>
-            <circle r={6} fill="hsl(0, 70%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
-            <text
-              textAnchor="middle"
-              y={3}
-              fontSize={7}
-              fontWeight="bold"
-              fill="white"
-            >
-              E
-            </text>
-          </Marker>
-        )}
+        {routeInfo?.endPoint && (() => {
+          const p = project([routeInfo.endPoint.longitude, routeInfo.endPoint.latitude]);
+          if (!p) return null;
+          return (
+            <g>
+              <circle cx={p[0]} cy={p[1]} r={6} fill="hsl(0, 70%, 50%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+              <text x={p[0]} y={p[1] + 3} textAnchor="middle" fontSize={7} fontWeight="bold" fill="white">E</text>
+            </g>
+          );
+        })()}
 
-        {/* Active Trip Stops (during trip, before final route is calculated) */}
+        {/* Active Trip Stops */}
         {activeStops.map((stop, index) => {
+          const p = project([stop.lng, stop.lat]);
+          if (!p) return null;
           const isHovered = hoveredStop === stop.id;
           return (
-            <Marker
+            <g
               key={stop.id}
-              coordinates={[stop.lng, stop.lat]}
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setHoveredStop(stop.id)}
+              onMouseLeave={() => setHoveredStop(null)}
             >
-              <g
-                style={{ cursor: 'pointer' }}
-                onMouseEnter={() => setHoveredStop(stop.id)}
-                onMouseLeave={() => setHoveredStop(null)}
-              >
-                <circle 
-                  r={isHovered ? 7 : 6} 
-                  fill="hsl(220, 80%, 55%)" 
-                  stroke="hsl(220, 20%, 15%)" 
-                  strokeWidth={1.5} 
-                />
-                <text
-                  textAnchor="middle"
-                  y={3.5}
-                  fontSize={7}
-                  fontWeight="bold"
-                  fill="white"
-                >
-                  {index + 1}
-                </text>
-              </g>
-            </Marker>
+              <circle cx={p[0]} cy={p[1]} r={isHovered ? 7 : 6} fill="hsl(220, 80%, 55%)" stroke="hsl(220, 20%, 15%)" strokeWidth={1.5} />
+              <text x={p[0]} y={p[1] + 3.5} textAnchor="middle" fontSize={7} fontWeight="bold" fill="white">{index + 1}</text>
+            </g>
           );
         })}
 
         {/* Milestone Markers */}
         {geoMilestones.map((milestone) => {
           const catInfo = getCategoryInfo(milestone.category);
+          const p = project([milestone.longitude!, milestone.latitude!]);
+          if (!p) return null;
           const isHovered = hoveredMilestone === milestone.id;
-          
           return (
-            <Marker
+            <g
               key={milestone.id}
-              coordinates={[milestone.longitude!, milestone.latitude!]}
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setHoveredMilestone(milestone.id)}
+              onMouseLeave={() => setHoveredMilestone(null)}
             >
-              <g
-                style={{ cursor: 'pointer' }}
-                transform="translate(-12, -24)"
-                onMouseEnter={() => setHoveredMilestone(milestone.id)}
-                onMouseLeave={() => setHoveredMilestone(null)}
-              >
-                {/* Invisible larger hit area to prevent flickering */}
-                <rect
-                  x="-4"
-                  y="-4"
-                  width="32"
-                  height="40"
-                  fill="transparent"
-                  style={{ pointerEvents: 'all' }}
-                />
-                {/* Pin shape */}
-                <path
-                  d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20s12-12.8 12-20c0-6.6-5.4-12-12-12z"
-                  fill={isHovered ? 'hsl(32, 95%, 55%)' : 'hsl(32, 95%, 44%)'}
-                  stroke="hsl(220, 20%, 15%)"
-                  strokeWidth="1"
-                  style={{ pointerEvents: 'none' }}
-                />
-                {/* Emoji icon inside pin */}
-                <text
-                  x="12"
-                  y="14"
-                  textAnchor="middle"
-                  fontSize="10"
-                  style={{ pointerEvents: 'none' }}
-                >
-                  {catInfo.icon}
-                </text>
-              </g>
-            </Marker>
+              {/* Invisible hit area */}
+              <rect x={p[0] - 16} y={p[1] - 28} width={32} height={40} fill="transparent" style={{ pointerEvents: 'all' }} />
+              {/* Pin shape */}
+              <path
+                d={`M${p[0]} ${p[1]}c0 0-12-12.8-12-20c0-6.6 5.4-12 12-12s12 5.4 12 12c0 7.2-12 20-12 20z`}
+                fill={isHovered ? 'hsl(32, 95%, 55%)' : 'hsl(32, 95%, 44%)'}
+                stroke="hsl(220, 20%, 15%)"
+                strokeWidth="1"
+                style={{ pointerEvents: 'none' }}
+              />
+              {/* Emoji icon */}
+              <text x={p[0]} y={p[1] - 18} textAnchor="middle" fontSize="10" style={{ pointerEvents: 'none' }}>
+                {catInfo.icon}
+              </text>
+            </g>
           );
         })}
-      </ComposableMap>
+      </svg>
 
       {/* Stop tooltip overlay */}
       {hoveredStop && activeStops.length > 0 && (
         <StopTooltip stop={activeStops.find(s => s.id === hoveredStop)!} />
       )}
       {hoveredMilestone && (
-        <MilestoneTooltip 
-          milestone={geoMilestones.find(m => m.id === hoveredMilestone)!}
-        />
+        <MilestoneTooltip milestone={geoMilestones.find(m => m.id === hoveredMilestone)!} />
       )}
     </motion.div>
   );
 };
 
-// Stop tooltip component
 const StopTooltip = ({ stop }: { stop: Waypoint }) => {
   return (
     <motion.div
@@ -302,10 +279,8 @@ const StopTooltip = ({ stop }: { stop: Waypoint }) => {
   );
 };
 
-// Milestone tooltip component
 const MilestoneTooltip = ({ milestone }: { milestone: Milestone }) => {
   const catInfo = getCategoryInfo(milestone.category);
-  
   return (
     <motion.div
       initial={{ opacity: 0, y: 5 }}
