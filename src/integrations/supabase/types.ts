@@ -342,7 +342,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      award_badge: {
+        Args: { p_badge_id: string; p_user_id?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
