@@ -115,9 +115,12 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    const safeMessage = errorMessage.includes('authorization') || errorMessage.includes('authenticated')
+      ? 'Authentication failed. Please sign in again.'
+      : 'An unexpected error occurred. Please try again.';
+    return new Response(JSON.stringify({ error: safeMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: errorMessage.includes('authorization') || errorMessage.includes('authenticated') ? 401 : 500,
     });
   }
 });
