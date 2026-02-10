@@ -23,7 +23,9 @@ const ProfilePage = () => {
   const { profile, signOut, user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [shareTrophy, setShareTrophy] = useState<Trophy | null>(null);
-  const [privacySetting, setPrivacySetting] = useState<'public' | 'friends' | 'private'>('friends');
+  const [privacySetting, setPrivacySetting] = useState<'public' | 'friends' | 'private'>(
+    (profile?.privacy_setting as 'public' | 'friends' | 'private') || 'private'
+  );
   const [signingOut, setSigningOut] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [editedBio, setEditedBio] = useState(profile?.bio || '');
