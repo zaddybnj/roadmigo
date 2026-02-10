@@ -485,7 +485,15 @@ const ProfilePage = () => {
               {(['public', 'friends', 'private'] as const).map((option) => (
                 <button
                   key={option}
-                  onClick={() => setPrivacySetting(option)}
+                  onClick={async () => {
+                    const prev = privacySetting;
+                    setPrivacySetting(option);
+                    const { error } = await updateProfile({ privacy_setting: option });
+                    if (error) {
+                      setPrivacySetting(prev);
+                      toast.error('Failed to update privacy setting');
+                    }
+                  }}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${
                     privacySetting === option
                       ? 'gradient-sunset text-primary-foreground'
