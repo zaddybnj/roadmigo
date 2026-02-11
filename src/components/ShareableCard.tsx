@@ -37,7 +37,7 @@ export const ShareableCard = ({ isOpen, onClose, type, trip, badge }: ShareableC
 
     if (navigator.share && platform !== 'facebook') {
       try {
-        await navigator.share({ title: 'RV Nomad', text: shareText, url: shareUrl });
+        await navigator.share({ title: 'Roadmigo', text: shareText, url: shareUrl });
       } catch (err) {
         window.open(urls[platform], '_blank');
       }
