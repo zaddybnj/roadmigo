@@ -80,7 +80,7 @@ export const ShareMenu = ({
 
     if (navigator.share && platform !== 'facebook') {
       try {
-        await navigator.share({ title: 'RV Nomad', text: shareText, url: shareUrl });
+        await navigator.share({ title: 'Roadmigo', text: shareText, url: shareUrl });
         setIsOpen(false);
       } catch (err) {
         window.open(urls[platform], '_blank');

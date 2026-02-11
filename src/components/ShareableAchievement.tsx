@@ -115,10 +115,10 @@ export const ShareableAchievement = ({ badge, trophy, isOpen, onClose }: Shareab
                     </div>
                   </div>
 
-                  {/* RV Nomad branding */}
+                  {/* Roadmigo branding */}
                   <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                     <span className="text-sm">🏕️</span>
-                    <span>RV Nomad</span>
+                    <span>Roadmigo</span>
                   </div>
                 </motion.div>
               </div>
