@@ -93,7 +93,7 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-lg flex flex-col overflow-hidden"
+      className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-lg flex flex-col overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 flex-shrink-0">
