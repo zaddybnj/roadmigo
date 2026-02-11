@@ -93,10 +93,10 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-lg flex flex-col"
+      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-lg flex flex-col overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center justify-between p-4 flex-shrink-0">
         <div className="flex gap-1.5">
           {slides.map((_, index) => (
             <motion.div
@@ -109,14 +109,14 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
         </div>
         <button
           onClick={handleSkip}
-          className="text-muted-foreground text-sm hover:text-foreground transition-colors"
+          className="text-muted-foreground text-sm hover:text-foreground transition-colors p-2 -m-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           Skip
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-6 overflow-hidden">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentSlide}
@@ -133,7 +133,7 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, type: 'spring' }}
-              className={`w-32 h-32 rounded-full bg-gradient-to-br ${slides[currentSlide].color} flex items-center justify-center mb-8 text-primary`}
+              className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br ${slides[currentSlide].color} flex items-center justify-center mb-6 sm:mb-8 text-primary`}
             >
               {slides[currentSlide].icon}
             </motion.div>
@@ -143,7 +143,7 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-2xl font-display font-bold mb-4"
+              className="text-xl sm:text-2xl font-display font-bold mb-3 sm:mb-4"
             >
               {slides[currentSlide].title}
             </motion.h2>
@@ -153,7 +153,7 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-muted-foreground text-lg max-w-sm leading-relaxed"
+              className="text-muted-foreground text-base sm:text-lg max-w-sm leading-relaxed"
             >
               {slides[currentSlide].description}
             </motion.p>
@@ -161,23 +161,12 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
         </AnimatePresence>
       </div>
 
-      {/* Navigation */}
-      <div className="p-6 pb-10 flex items-center justify-center gap-4">
-        <Button
-          variant="ghost"
-          size="lg"
-          onClick={prevSlide}
-          disabled={currentSlide === 0}
-          className={`w-[85px] ${currentSlide === 0 ? 'invisible' : ''}`}
-        >
-          <ChevronLeft className="w-5 h-5 mr-1" />
-          Back
-        </Button>
-
+      {/* Navigation - fixed to bottom with safe area */}
+      <div className="flex-shrink-0 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex flex-col items-center gap-3">
         <Button
           size="lg"
           onClick={nextSlide}
-          className="w-[200px]"
+          className="w-full max-w-[280px] min-h-[48px]"
         >
           {currentSlide === slides.length - 1 ? (
             "Get Started"
@@ -189,8 +178,19 @@ export const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
           )}
         </Button>
 
-        {/* Invisible spacer for alignment */}
-        <div className="w-[85px]" />
+        <div className="flex items-center justify-center gap-4">
+          {currentSlide > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={prevSlide}
+              className="min-h-[44px]"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+          )}
+        </div>
       </div>
     </motion.div>
   );
