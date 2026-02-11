@@ -37,7 +37,7 @@ export const ShareableCard = ({ isOpen, onClose, type, trip, badge }: ShareableC
 
     if (navigator.share && platform !== 'facebook') {
       try {
-        await navigator.share({ title: 'RV Nomad', text: shareText, url: shareUrl });
+        await navigator.share({ title: 'Roadmigo', text: shareText, url: shareUrl });
       } catch (err) {
         window.open(urls[platform], '_blank');
       }
@@ -194,7 +194,7 @@ const TripCompleteCard = ({ trip, formatDate }: { trip: Trip; formatDate: (d: st
       {/* Branding */}
       <div className="flex items-center justify-center gap-2 pt-4 border-t border-border">
         <span className="text-lg">🚐</span>
-        <span className="font-display font-semibold text-sm text-muted-foreground">RV Nomad</span>
+        <span className="font-display font-semibold text-sm text-muted-foreground">Roadmigo</span>
       </div>
     </div>
   </div>
@@ -260,7 +260,7 @@ const TripStatsCard = ({ trip, formatDate }: { trip: Trip; formatDate: (d: strin
     {/* Branding */}
     <div className="flex items-center justify-center gap-2 pt-4 border-t border-border">
       <span className="text-lg">🚐</span>
-      <span className="font-display font-semibold text-sm text-muted-foreground">RV Nomad</span>
+      <span className="font-display font-semibold text-sm text-muted-foreground">Roadmigo</span>
     </div>
   </div>
 );
@@ -314,7 +314,7 @@ const AchievementCard = ({ badge }: { badge: Badge }) => {
         {/* Branding */}
         <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-border">
           <span className="text-lg">🚐</span>
-          <span className="font-display font-semibold text-sm text-muted-foreground">RV Nomad</span>
+          <span className="font-display font-semibold text-sm text-muted-foreground">Roadmigo</span>
         </div>
       </div>
     </div>
