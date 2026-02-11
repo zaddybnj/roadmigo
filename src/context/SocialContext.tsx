@@ -143,12 +143,25 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       setLikedComments(new Set((commentLikes || []).map(l => l.comment_id)));
 
-      // Fetch all public profiles (for discover/feed)
-      const { data: profiles } = await supabase
+      // Fetch public profiles (for discover/feed)
+      const { data: publicProfiles } = await supabase
         .from('public_profiles' as any)
         .select('*')
+        .eq('privacy_setting', 'public')
         .neq('user_id', user.id)
         .limit(50) as { data: PublicProfile[] | null };
+
+      // Fetch friends-only profiles where user is following them
+      const { data: friendProfiles } = followingIds.length > 0
+        ? await supabase
+            .from('public_profiles' as any)
+            .select('*')
+            .eq('privacy_setting', 'friends')
+            .in('user_id', followingIds)
+            .limit(50) as { data: PublicProfile[] | null }
+        : { data: [] as PublicProfile[] };
+
+      const profiles = [...(publicProfiles || []), ...(friendProfiles || [])];
 
       // Get follower/following counts for each profile
       const socialUsers = await Promise.all((profiles || []).map(async (p) => {
