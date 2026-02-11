@@ -28,7 +28,7 @@ export const ShareableAchievement = ({ badge, trophy, isOpen, onClose }: Shareab
       try {
         await navigator.share({
           title: `I earned the "${item.name}" ${isTrophy ? 'trophy' : 'badge'}!`,
-          text: `${item.description} 🏆 Join me on RV Nomad!`,
+          text: `${item.description} 🏆 Join me on Roadmigo!`,
           url: window.location.origin,
         });
       } catch (err) {
