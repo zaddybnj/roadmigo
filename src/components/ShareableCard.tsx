@@ -194,7 +194,7 @@ const TripCompleteCard = ({ trip, formatDate }: { trip: Trip; formatDate: (d: st
       {/* Branding */}
       <div className="flex items-center justify-center gap-2 pt-4 border-t border-border">
         <span className="text-lg">🚐</span>
-        <span className="font-display font-semibold text-sm text-muted-foreground">RV Nomad</span>
+        <span className="font-display font-semibold text-sm text-muted-foreground">Roadmigo</span>
       </div>
     </div>
   </div>
