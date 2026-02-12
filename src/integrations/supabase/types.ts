@@ -283,10 +283,69 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          level: number | null
+          nights_camped: number | null
+          photos_shared: number | null
+          privacy_setting: string | null
+          states_visited: string[] | null
+          total_miles: number | null
+          total_trips: number | null
+          updated_at: string | null
+          user_id: string | null
+          username: string | null
+          xp: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          level?: number | null
+          nights_camped?: number | null
+          photos_shared?: number | null
+          privacy_setting?: string | null
+          states_visited?: string[] | null
+          total_miles?: number | null
+          total_trips?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          username?: string | null
+          xp?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          level?: number | null
+          nights_camped?: number | null
+          photos_shared?: number | null
+          privacy_setting?: string | null
+          states_visited?: string[] | null
+          total_miles?: number | null
+          total_trips?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          username?: string | null
+          xp?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      award_badge: {
+        Args: { p_badge_id: string; p_user_id?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
