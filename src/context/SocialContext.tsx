@@ -5,6 +5,7 @@ import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
 type DbProfile = Tables<'profiles'>;
+type PublicProfile = Omit<DbProfile, 'is_premium' | 'premium_expires_at'>;
 type DbComment = Tables<'comments'>;
 
 export interface SocialUser {
@@ -62,7 +63,7 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
 // Convert DB profile to SocialUser
 const profileToSocialUser = (
-  profile: DbProfile,
+  profile: PublicProfile | DbProfile,
   isFollowing: boolean,
   followersCount: number,
   followingCount: number
@@ -142,12 +143,25 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       setLikedComments(new Set((commentLikes || []).map(l => l.comment_id)));
 
-      // Fetch all public profiles (for discover/feed)
-      const { data: profiles } = await supabase
-        .from('profiles')
+      // Fetch public profiles (for discover/feed)
+      const { data: publicProfiles } = await supabase
+        .from('public_profiles' as any)
         .select('*')
+        .eq('privacy_setting', 'public')
         .neq('user_id', user.id)
-        .limit(50);
+        .limit(50) as { data: PublicProfile[] | null };
+
+      // Fetch friends-only profiles where user is following them
+      const { data: friendProfiles } = followingIds.length > 0
+        ? await supabase
+            .from('public_profiles' as any)
+            .select('*')
+            .eq('privacy_setting', 'friends')
+            .in('user_id', followingIds)
+            .limit(50) as { data: PublicProfile[] | null }
+        : { data: [] as PublicProfile[] };
+
+      const profiles = [...(publicProfiles || []), ...(friendProfiles || [])];
 
       // Get follower/following counts for each profile
       const socialUsers = await Promise.all((profiles || []).map(async (p) => {
@@ -373,9 +387,9 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Fetch profiles for comment authors
     const userIds = [...new Set((comments || []).map(c => c.user_id))];
     const { data: profiles } = await supabase
-      .from('profiles')
+      .from('public_profiles' as any)
       .select('user_id, display_name, avatar_url')
-      .in('user_id', userIds);
+      .in('user_id', userIds) as { data: Pick<PublicProfile, 'user_id' | 'display_name' | 'avatar_url'>[] | null };
 
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
 
@@ -417,10 +431,10 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Fetch from database
     const { data: profileData } = await supabase
-      .from('profiles')
+      .from('public_profiles' as any)
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle();
+      .maybeSingle() as { data: PublicProfile | null };
 
     if (!profileData) return undefined;
 

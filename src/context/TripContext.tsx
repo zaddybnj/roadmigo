@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Tables } from '@/integrations/supabase/types';
@@ -80,6 +80,8 @@ interface TripContextType {
   addRouteStop: (stop: Waypoint) => Promise<void>;
   removeRouteStop: (stopId: string) => Promise<void>;
   refreshTrips: () => Promise<void>;
+  routePreview: RouteData | null;
+  setRoutePreview: (data: RouteData | null) => void;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
@@ -140,6 +142,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [completedTrips, setCompletedTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [likedTripIds, setLikedTripIds] = useState<Set<string>>(new Set());
+  const [routePreview, setRoutePreview] = useState<RouteData | null>(null);
 
   const isTracking = activeTrip !== null;
 
@@ -164,9 +167,9 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Fetch profiles for all trip users
       const userIds = [...new Set((trips || []).map(t => t.user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles' as any)
         .select('user_id, display_name, avatar_url')
-        .in('user_id', userIds);
+        .in('user_id', userIds) as { data: { user_id: string; display_name: string; avatar_url: string | null }[] | null };
 
       const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
 
@@ -364,6 +367,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCompletedTrips(prev => [completedTrip, ...prev]);
     setActiveTrip(null);
+    setRoutePreview(null);
 
     // Update profile stats
     await supabase
@@ -464,12 +468,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newWaypoints = [...activeTrip.waypoints, stop];
     
-    // Store waypoints in the route JSONB column as { stops: [...] }
-    const routePayload = { stops: newWaypoints };
+    // Store waypoints in the route JSONB column, preserving startCoords & startLocationName
+    const existingRouteData = activeTrip.startCoords 
+      ? { startCoords: activeTrip.startCoords, startLocationName: activeTrip.startLocation, stops: newWaypoints }
+      : { stops: newWaypoints };
 
     await supabase
       .from('trips')
-      .update({ route: routePayload } as any)
+      .update({ route: existingRouteData } as any)
       .eq('id', activeTrip.id);
 
     setActiveTrip(prev => prev ? { ...prev, waypoints: newWaypoints } : null);
@@ -480,11 +486,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newWaypoints = activeTrip.waypoints.filter(w => w.id !== stopId);
     
-    const routePayload = { stops: newWaypoints };
+    // Preserve startCoords & startLocationName
+    const existingRouteData = activeTrip.startCoords 
+      ? { startCoords: activeTrip.startCoords, startLocationName: activeTrip.startLocation, stops: newWaypoints }
+      : { stops: newWaypoints };
 
     await supabase
       .from('trips')
-      .update({ route: routePayload } as any)
+      .update({ route: existingRouteData } as any)
       .eq('id', activeTrip.id);
 
     setActiveTrip(prev => prev ? { ...prev, waypoints: newWaypoints } : null);
@@ -507,6 +516,8 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addRouteStop,
       removeRouteStop,
       refreshTrips,
+      routePreview,
+      setRoutePreview,
     }}>
       {children}
     </TripContext.Provider>

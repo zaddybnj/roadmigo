@@ -86,7 +86,7 @@ const AuthPage = () => {
           >
             <Compass className="w-10 h-10 text-primary" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-foreground">RV Nomad</h1>
+          <h1 className="text-3xl font-bold text-foreground">Roadmigo</h1>
           <p className="text-muted-foreground mt-2">Track your adventures, share your journey</p>
         </div>
 

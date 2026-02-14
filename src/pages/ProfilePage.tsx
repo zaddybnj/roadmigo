@@ -23,7 +23,9 @@ const ProfilePage = () => {
   const { profile, signOut, user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [shareTrophy, setShareTrophy] = useState<Trophy | null>(null);
-  const [privacySetting, setPrivacySetting] = useState<'public' | 'friends' | 'private'>('friends');
+  const [privacySetting, setPrivacySetting] = useState<'public' | 'friends' | 'private'>(
+    (profile?.privacy_setting as 'public' | 'friends' | 'private') || 'private'
+  );
   const [signingOut, setSigningOut] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [editedBio, setEditedBio] = useState(profile?.bio || '');
@@ -483,7 +485,15 @@ const ProfilePage = () => {
               {(['public', 'friends', 'private'] as const).map((option) => (
                 <button
                   key={option}
-                  onClick={() => setPrivacySetting(option)}
+                  onClick={async () => {
+                    const prev = privacySetting;
+                    setPrivacySetting(option);
+                    const { error } = await updateProfile({ privacy_setting: option });
+                    if (error) {
+                      setPrivacySetting(prev);
+                      toast.error('Failed to update privacy setting');
+                    }
+                  }}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${
                     privacySetting === option
                       ? 'gradient-sunset text-primary-foreground'

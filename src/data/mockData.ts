@@ -159,7 +159,7 @@ export const trophies: Trophy[] = [
   {
     id: 't2',
     name: 'Community Champion',
-    description: 'A beloved member of the RV Nomad community',
+    description: 'A beloved member of the Roadmigo community',
     icon: '💎',
     rarity: 'epic',
     unlockedAt: '2023-12-01',

@@ -33,7 +33,10 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("No authorization header provided");
+    logStep("Authorization header found");
+
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
@@ -87,9 +90,14 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    const safeMessage = errorMessage.includes('authorization') || errorMessage.includes('authenticated')
+      ? 'Authentication failed. Please sign in again.'
+      : errorMessage === 'Invalid priceId'
+        ? 'Invalid subscription plan selected.'
+        : 'An unexpected error occurred. Please try again.';
+    return new Response(JSON.stringify({ error: safeMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: errorMessage.includes('authorization') || errorMessage.includes('authenticated') ? 401 : 500,
     });
   }
 });
