@@ -87,7 +87,7 @@ export const PhotoUploader = ({ onPhotosAdd, maxPhotos = 20, currentCount = 0 }:
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="fixed inset-x-0 bottom-0 bg-card rounded-t-3xl p-6 z-50 card-elevated max-h-[80vh] overflow-hidden flex flex-col"
+              className="fixed inset-x-0 bottom-0 bg-card rounded-t-3xl p-6 pb-24 z-50 card-elevated max-h-[85vh] overflow-hidden flex flex-col"
             >
               {/* Handle */}
               <div className="flex justify-center mb-4">
