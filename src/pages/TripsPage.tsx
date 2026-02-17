@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Moon, ChevronRight } from 'lucide-react';
@@ -15,6 +16,7 @@ const TripsPage = () => {
   const { user } = useAuth();
   const [showStartModal, setShowStartModal] = useState(false);
   const [filter, setFilter] = useState('All');
+  const navigate = useNavigate();
 
   const formatDate = (start: string, end: string) => {
     const startDate = new Date(start);
@@ -174,11 +176,10 @@ const TripsPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                onClick={() => setShowStartModal(true)}
-                disabled={isTracking}
-                className="w-full mt-6 py-4 rounded-xl gradient-sunset text-primary-foreground font-display font-semibold glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => isTracking ? navigate('/trip/active') : setShowStartModal(true)}
+                className="w-full mt-6 py-4 rounded-xl gradient-sunset text-primary-foreground font-display font-semibold glow-primary"
               >
-                {isTracking ? 'Trip in Progress...' : 'Start New Trip'}
+                {isTracking ? 'View Trip in Progress' : 'Start New Trip'}
               </motion.button>
             </>
           )}
