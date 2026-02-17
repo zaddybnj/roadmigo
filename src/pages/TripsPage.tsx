@@ -87,8 +87,8 @@ const TripsPage = () => {
                     <p className="text-xs text-muted-foreground">Total Trips</p>
                   </div>
                   <div>
-                    <p className="font-display text-2xl font-bold text-foreground">2024</p>
-                    <p className="text-xs text-muted-foreground">This Year: {myTrips.filter(t => new Date(t.startDate).getFullYear() === 2024).length}</p>
+                    <p className="font-display text-2xl font-bold text-foreground">{new Date().getFullYear()}</p>
+                    <p className="text-xs text-muted-foreground">This Year: {myTrips.filter(t => new Date(t.startDate).getFullYear() === new Date().getFullYear()).length}</p>
                   </div>
                   <div>
                     <p className="font-display text-2xl font-bold text-secondary">{(totalMiles / 1000).toFixed(1)}k</p>
