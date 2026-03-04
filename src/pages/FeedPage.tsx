@@ -178,7 +178,7 @@ const FeedPage = () => {
         transition={{ delay: 0.5, type: 'spring' }}
         onClick={() => setShowStartModal(true)}
         disabled={isTracking}
-        className="fixed bottom-20 right-4 w-14 h-14 rounded-full gradient-sunset flex items-center justify-center glow-primary shadow-lg disabled:opacity-50"
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full gradient-sunset flex items-center justify-center glow-primary shadow-lg disabled:opacity-50"
       >
         <Plus className="w-6 h-6 text-primary-foreground" />
       </motion.button>
