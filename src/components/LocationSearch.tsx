@@ -49,7 +49,7 @@ export const LocationSearch = ({
       
       if (response.ok) {
         const data = await response.json();
-        const locations: LocationResult[] = data.map((item: any) => ({
+        const locations: LocationResult[] = (data as { name?: string; display_name: string; lat: string; lon: string }[]).map((item) => ({
           name: item.name || item.display_name.split(',')[0],
           displayName: item.display_name,
           latitude: parseFloat(item.lat),
