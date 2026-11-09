@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
+import { fetchProfileCards } from '@/lib/trips';
 
 type DbProfile = Tables<'profiles'>;
 type PublicProfile = Omit<DbProfile, 'is_premium' | 'premium_expires_at'>;
@@ -145,43 +146,43 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Fetch public profiles (for discover/feed)
       const { data: publicProfiles } = await supabase
-        .from('public_profiles' as any)
+        .from('public_profiles')
         .select('*')
         .eq('privacy_setting', 'public')
         .neq('user_id', user.id)
-        .limit(50) as { data: PublicProfile[] | null };
+        .limit(50) as unknown as { data: PublicProfile[] | null };
 
       // Fetch friends-only profiles where user is following them
       const { data: friendProfiles } = followingIds.length > 0
         ? await supabase
-            .from('public_profiles' as any)
+            .from('public_profiles')
             .select('*')
             .eq('privacy_setting', 'friends')
             .in('user_id', followingIds)
-            .limit(50) as { data: PublicProfile[] | null }
+            .limit(50) as unknown as { data: PublicProfile[] | null }
         : { data: [] as PublicProfile[] };
 
       const profiles = [...(publicProfiles || []), ...(friendProfiles || [])];
 
-      // Get follower/following counts for each profile
-      const socialUsers = await Promise.all((profiles || []).map(async (p) => {
-        const { count: followersCount } = await supabase
-          .from('follows')
-          .select('*', { count: 'exact', head: true })
-          .eq('following_id', p.user_id);
+      // Follower/following counts for all listed profiles in two queries
+      const ids = profiles.map(p => p.user_id);
+      const [{ data: followerRows }, { data: followingRows }] = ids.length > 0
+        ? await Promise.all([
+            supabase.from('follows').select('following_id').in('following_id', ids),
+            supabase.from('follows').select('follower_id').in('follower_id', ids),
+          ])
+        : [{ data: [] as { following_id: string }[] }, { data: [] as { follower_id: string }[] }];
+      const countBy = (values: string[]) =>
+        values.reduce((m, v) => m.set(v, (m.get(v) || 0) + 1), new Map<string, number>());
+      const followersCount = countBy((followerRows || []).map(r => r.following_id));
+      const followingCount = countBy((followingRows || []).map(r => r.follower_id));
 
-        const { count: followingCount } = await supabase
-          .from('follows')
-          .select('*', { count: 'exact', head: true })
-          .eq('follower_id', p.user_id);
-
-        return profileToSocialUser(
-          p,
-          followingIds.includes(p.user_id),
-          followersCount || 0,
-          followingCount || 0
-        );
-      }));
+      const socialUsers = profiles.map(p => profileToSocialUser(
+        p,
+        followingIds.includes(p.user_id),
+        followersCount.get(p.user_id) || 0,
+        followingCount.get(p.user_id) || 0
+      ));
 
       setUsers(socialUsers);
     } catch (error) {
@@ -385,13 +386,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     // Fetch profiles for comment authors
-    const userIds = [...new Set((comments || []).map(c => c.user_id))];
-    const { data: profiles } = await supabase
-      .from('public_profiles' as any)
-      .select('user_id, display_name, avatar_url')
-      .in('user_id', userIds) as { data: Pick<PublicProfile, 'user_id' | 'display_name' | 'avatar_url'>[] | null };
-
-    const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+    const profileMap = await fetchProfileCards((comments || []).map(c => c.user_id));
 
     return (comments || []).map(c => {
       const profileData = profileMap.get(c.user_id);
@@ -399,7 +394,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         id: c.id,
         tripId: c.trip_id,
         userId: c.user_id,
-        userName: profileData?.display_name || 'Unknown User',
+        userName: profileData?.display_name || 'Roadmigo traveler',
         userAvatar: profileData?.avatar_url || '/placeholder.svg',
         content: c.content,
         createdAt: c.created_at,
@@ -431,12 +426,28 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Fetch from database
     const { data: profileData } = await supabase
-      .from('public_profiles' as any)
+      .from('public_profiles')
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle() as { data: PublicProfile | null };
+      .maybeSingle() as unknown as { data: PublicProfile | null };
 
-    if (!profileData) return undefined;
+    if (!profileData) {
+      // Private profile: show name/avatar only, no stats
+      const card = (await fetchProfileCards([userId])).get(userId);
+      if (!card) return undefined;
+      return {
+        id: card.user_id,
+        userId: card.user_id,
+        name: card.display_name,
+        username: `@${card.username}`,
+        avatar: card.avatar_url || '/placeholder.svg',
+        bio: '',
+        stats: { totalMiles: 0, totalTrips: 0, statesVisited: 0, nightsCamped: 0, photosShared: 0 },
+        isFollowing: following.includes(userId),
+        followersCount: 0,
+        followingCount: 0,
+      };
+    }
 
     const { count: followersCount } = await supabase
       .from('follows')

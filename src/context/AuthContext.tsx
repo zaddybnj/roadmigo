@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { SITE_URL } from '@/lib/site';
 
 type Profile = Tables<'profiles'>;
 
@@ -13,8 +14,15 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
+  updateProfile: (updates: EditableProfileFields) => Promise<{ error: Error | null }>;
+  /** Re-read the profile (e.g. after the server recomputes stats). */
+  refreshProfile: () => Promise<void>;
 }
+
+/** Profile columns users may edit; stats/level/premium are maintained by the server. */
+export type EditableProfileFields = Partial<Pick<Profile, 'display_name' | 'username' | 'bio' | 'avatar_url' | 'privacy_setting'>>;
+
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -78,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: SITE_URL,
         data: {
           full_name: fullName,
         },
@@ -102,7 +110,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(null);
   };
 
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const refreshProfile = async () => {
+    if (!user) return;
+    const data = await fetchProfile(user.id);
+    if (data) setProfile(data);
+  };
+
+  const updateProfile = async (updates: EditableProfileFields) => {
     if (!user) return { error: new Error('Not authenticated') };
 
     const { error } = await supabase
@@ -128,6 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         updateProfile,
+        refreshProfile,
       }}
     >
       {children}
@@ -135,6 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

@@ -3,7 +3,7 @@ import { UserPlus, UserMinus, MapPin, Route } from 'lucide-react';
 import { SocialUser } from '@/types';
 import { useSocial } from '@/context/SocialContext';
 import { Link } from 'react-router-dom';
-import { currentUser } from '@/data/mockData';
+import { useAuth } from '@/context/AuthContext';
 
 interface UserCardProps {
   user: SocialUser;
@@ -14,7 +14,8 @@ interface UserCardProps {
 export const UserCard = ({ user, index = 0, showStats = true }: UserCardProps) => {
   const { isFollowing, followUser, unfollowUser } = useSocial();
   const following = isFollowing(user.id);
-  const isCurrentUser = user.id === currentUser.id;
+  const { user: me } = useAuth();
+  const isCurrentUser = user.id === me?.id;
 
   const handleFollowToggle = (e: React.MouseEvent) => {
     e.preventDefault();

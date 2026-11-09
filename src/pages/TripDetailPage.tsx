@@ -4,7 +4,7 @@ import {
   ChevronLeft, MapPin, Calendar, Moon, Heart, 
   MessageCircle, FileText, Mountain, Lock, Users, Globe, Landmark
 } from 'lucide-react';
-import { useTrip } from '@/context/TripContext';
+import { useTripById } from '@/hooks/useTrips';
 import { useSocial } from '@/context/SocialContext';
 import { useAuth } from '@/context/AuthContext';
 import { USMap } from '@/components/USMap';
@@ -17,13 +17,20 @@ import { useState } from 'react';
 const TripDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { completedTrips } = useTrip();
+  const { trip, loading } = useTripById(id);
   const { isTripLiked, likeTrip, unlikeTrip } = useSocial();
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   
-  const trip = completedTrips.find(t => t.id === id);
   const isLiked = id ? isTripLiked(id) : false;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   if (!trip) {
     return (
@@ -52,7 +59,7 @@ const TripDetailPage = () => {
   };
 
   const startDate = new Date(trip.startDate);
-  const endDate = new Date(trip.endDate);
+  const endDate = new Date(trip.endDate || trip.startDate);
   const formatDateRange = () => {
     return `${startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
   };

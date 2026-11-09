@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, MapPin, Route, Moon, Calendar, UserPlus, UserMinus, Lock, Users, Loader2 } from 'lucide-react';
 import { useSocial, SocialUser } from '@/context/SocialContext';
-import { useTrip } from '@/context/TripContext';
+import { useUserTrips } from '@/hooks/useTrips';
 import { TripCard } from '@/components/TripCard';
 import { StatCard } from '@/components/StatCard';
 import { useState, useEffect } from 'react';
@@ -11,7 +11,7 @@ const UserProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getUserById, isFollowing, followUser, unfollowUser } = useSocial();
-  const { completedTrips } = useTrip();
+  const { trips: visibleTrips } = useUserTrips(id);
   const [user, setUser] = useState<SocialUser | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,11 +52,8 @@ const UserProfilePage = () => {
     );
   }
 
-  // Get user's public trips
-  const userTrips = completedTrips.filter(t => 
-    t.userId === user.userId && 
-    (t.privacy === 'public' || (t.privacy === 'friends' && isUserFollowing))
-  );
+  // The database only returns trips this viewer is allowed to see
+  const userTrips = visibleTrips;
 
   const handleFollowToggle = async () => {
     if (!user) return;
@@ -193,9 +190,9 @@ const UserProfilePage = () => {
             <div className="bg-card rounded-xl p-8 text-center card-elevated">
               <Lock className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">
-                {isUserFollowing 
-                  ? "This user hasn't shared any trips yet"
-                  : "Follow this user to see their friends-only trips"
+                {isUserFollowing
+                  ? "No trips to show yet. Friends-only trips appear once you follow each other."
+                  : "Follow each other to see friends-only trips"
                 }
               </p>
             </div>

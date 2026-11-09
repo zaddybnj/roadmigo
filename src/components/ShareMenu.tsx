@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SITE_URL } from '@/lib/site';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Share2, X, Instagram, Facebook, Twitter, Download, Map, Award, Flag } from 'lucide-react';
 import { Trip, Badge } from '@/types';
@@ -70,7 +71,7 @@ export const ShareMenu = ({
       ? `I earned the "${badge.name}" badge! ${badge.description} 🏆`
       : 'Check out my RV adventures!';
 
-    const shareUrl = window.location.origin;
+    const shareUrl = SITE_URL;
 
     const urls: Record<string, string> = {
       instagram: `https://www.instagram.com/`,
