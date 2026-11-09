@@ -1,18 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getCorsHeaders, returnBaseUrl } from "../_shared/cors.ts";
 
-const ALLOWED_ORIGINS = [
-  'https://id-preview--ab934334-8e6b-4e47-9395-aeb7fbc72ba4.lovable.app',
-];
-
-function getCorsHeaders(origin: string | null) {
-  const allowedOrigin = origin && ALLOWED_ORIGINS.some(ao => origin === ao || origin.endsWith('.lovable.app')) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  };
-}
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -41,7 +31,7 @@ serve(async (req) => {
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated", { userId: user.id });
 
     const VALID_PRICE_IDS = [
       'price_1SsVR6BkAgGQMRImSPzaceSg', // monthly
@@ -66,7 +56,7 @@ serve(async (req) => {
       logStep("Existing customer found", { customerId });
     }
 
-    const origin = req.headers.get("origin") || "https://lovable.dev";
+    const origin = returnBaseUrl(req.headers.get("origin"));
     
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -78,6 +68,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
+      client_reference_id: user.id,
+      subscription_data: { metadata: { supabase_user_id: user.id } },
       success_url: `${origin}/pricing?success=true`,
       cancel_url: `${origin}/pricing?canceled=true`,
     });

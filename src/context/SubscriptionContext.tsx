@@ -6,6 +6,7 @@ import { PREMIUM_FEATURES } from '@/types/subscription';
 export type SubscriptionTier = 'free' | 'premium';
 
 // Stripe product/price IDs
+// eslint-disable-next-line react-refresh/only-export-components
 export const STRIPE_CONFIG = {
   monthly: {
     priceId: 'price_1SsVR6BkAgGQMRImSPzaceSg',
@@ -92,20 +93,30 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
-  // Check subscription on mount and when session changes
+  // Check subscription on mount and when the signed-in user changes
+  const userId = session?.user?.id;
   useEffect(() => {
     checkSubscription();
-  }, [checkSubscription]);
+  }, [checkSubscription, userId]);
 
-  // Refresh subscription status periodically (every minute)
+  // Re-check when the user comes back to the app (e.g. after paying in a browser
+  // tab) and every 15 minutes while it's open, instead of hitting Stripe every minute.
   useEffect(() => {
     if (!session) return;
-    
-    const interval = setInterval(() => {
-      checkSubscription();
-    }, 60000);
 
-    return () => clearInterval(interval);
+    let last = Date.now();
+    const recheck = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < 30_000) return;
+      last = Date.now();
+      checkSubscription();
+    };
+    document.addEventListener('visibilitychange', recheck);
+    const interval = setInterval(() => { last = 0; recheck(); }, 15 * 60_000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', recheck);
+      clearInterval(interval);
+    };
   }, [session, checkSubscription]);
 
   const createCheckout = useCallback(async (isYearly: boolean): Promise<string | null> => {
@@ -188,6 +199,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSubscription = () => {
   const context = useContext(SubscriptionContext);
   if (!context) {

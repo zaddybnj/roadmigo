@@ -5,7 +5,8 @@ import { StreakCard } from '@/components/StreakCard';
 import { ShareableAchievement } from '@/components/ShareableAchievement';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
-import { currentUser, visitedStates, trophies, streaks, gamificationData, achievements } from '@/data/mockData';
+import { useGamification } from '@/hooks/useTrips';
+import { levelTitle } from '@/lib/gamification';
 import { useSocial } from '@/context/SocialContext';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { useAuth } from '@/context/AuthContext';
@@ -33,11 +34,14 @@ const ProfilePage = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   
-  const unlockedBadges = achievements.reduce(
-    (acc, cat) => acc + cat.badges.filter((b) => b.unlockedAt).length,
-    0
-  );
-  const unlockedTrophies = trophies.filter((t) => t.unlockedAt).length;
+  const {
+    stats,
+    trophies,
+    streaks,
+    level: levelInfo,
+    unlockedBadgeCount: unlockedBadges,
+    unlockedTrophyCount: unlockedTrophies,
+  } = useGamification();
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -113,26 +117,19 @@ const ProfilePage = () => {
     }
   };
 
-  // Use profile data if available, otherwise fall back to mock data
-  const displayName = profile?.display_name || currentUser.name;
-  const username = profile?.username ? `@${profile.username}` : currentUser.username;
-  const bio = profile?.bio || currentUser.bio;
-  const level = profile?.level || gamificationData.level;
-  const totalMiles = profile?.total_miles || currentUser.stats.totalMiles;
-  const totalTrips = profile?.total_trips || currentUser.stats.totalTrips;
-  const nightsCamped = profile?.nights_camped || currentUser.stats.nightsCamped;
-  const photosShared = profile?.photos_shared || currentUser.stats.photosShared;
-  const statesCount = profile?.states_visited?.length || visitedStates.length;
-  const joinedDate = user?.created_at || currentUser.joinedDate;
+  // Stats come from the user's own trips (the server keeps profile totals in sync)
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Traveler';
+  const username = profile?.username ? `@${profile.username}` : '';
+  const bio = profile?.bio || '';
+  const level = levelInfo.level;
+  const totalMiles = stats.totalMiles;
+  const totalTrips = stats.totalTrips;
+  const nightsCamped = stats.nightsCamped;
+  const photosShared = stats.photosShared;
+  const statesCount = stats.statesVisited.length;
+  const joinedDate = user?.created_at || profile?.created_at || new Date().toISOString();
 
-  const getLevelTitle = (level: number): string => {
-    if (level < 5) return 'Newcomer';
-    if (level < 10) return 'Explorer';
-    if (level < 20) return 'Road Warrior';
-    if (level < 30) return 'Nomad';
-    if (level < 50) return 'Legend';
-    return 'Road Master';
-  };
+  const getLevelTitle = levelTitle;
 
   const getPrivacyIcon = (setting: string) => {
     switch (setting) {
@@ -187,7 +184,7 @@ const ProfilePage = () => {
             </button>
             {/* Level Badge */}
             <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full gradient-sunset flex items-center justify-center border-3 border-background glow-primary">
-              <span className="text-sm font-bold">{gamificationData.level}</span>
+              <span className="text-sm font-bold">{level}</span>
             </div>
             {/* Premium Crown */}
             {isPremium && (
@@ -337,6 +334,11 @@ const ProfilePage = () => {
             </Link>
           </div>
           <div className="space-y-3">
+            {unlockedTrophies === 0 && (
+              <p className="text-sm text-muted-foreground bg-card rounded-xl p-4 card-elevated">
+                No trophies yet. Keep exploring!
+              </p>
+            )}
             {trophies.filter((t) => t.unlockedAt).slice(0, 3).map((trophy, index) => (
               <TrophyCard 
                 key={trophy.id} 
@@ -362,6 +364,11 @@ const ProfilePage = () => {
             </div>
           </div>
           <div className="space-y-3">
+            {streaks.filter((s) => s.isActive).length === 0 && (
+              <p className="text-sm text-muted-foreground bg-card rounded-xl p-4 card-elevated">
+                No active streaks. Finish a trip this month to start one.
+              </p>
+            )}
             {streaks.filter((s) => s.isActive).slice(0, 2).map((streak, index) => (
               <StreakCard key={streak.id} streak={streak} index={index} />
             ))}

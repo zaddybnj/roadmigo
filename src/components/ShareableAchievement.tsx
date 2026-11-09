@@ -1,7 +1,8 @@
 import { Badge, Trophy } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share2 } from 'lucide-react';
-import { currentUser } from '@/data/mockData';
+import { useAuth } from '@/context/AuthContext';
+import { SITE_URL } from '@/lib/site';
 
 interface ShareableAchievementProps {
   badge?: Badge;
@@ -17,6 +18,7 @@ const tierColors = {
 };
 
 export const ShareableAchievement = ({ badge, trophy, isOpen, onClose }: ShareableAchievementProps) => {
+  const { profile } = useAuth();
   const item = badge || trophy;
   if (!item) return null;
 
@@ -29,7 +31,7 @@ export const ShareableAchievement = ({ badge, trophy, isOpen, onClose }: Shareab
         await navigator.share({
           title: `I earned the "${item.name}" ${isTrophy ? 'trophy' : 'badge'}!`,
           text: `${item.description} 🏆 Join me on Roadmigo!`,
-          url: window.location.origin,
+          url: SITE_URL,
         });
       } catch (err) {
         console.log('Share cancelled');
@@ -110,8 +112,8 @@ export const ShareableAchievement = ({ badge, trophy, isOpen, onClose }: Shareab
                       <span className="text-sm">🚐</span>
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-medium">{currentUser.name}</p>
-                      <p className="text-xs text-muted-foreground">{currentUser.username}</p>
+                      <p className="text-sm font-medium">{profile?.display_name || 'Roadmigo traveler'}</p>
+                      <p className="text-xs text-muted-foreground">{profile?.username ? `@${profile.username}` : ''}</p>
                     </div>
                   </div>
 

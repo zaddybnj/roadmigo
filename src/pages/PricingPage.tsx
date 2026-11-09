@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Crown, Check, Sparkles, Route, Camera, Award, Users, 
-  History, Map, BarChart3, Images, Infinity, MapPinned, 
+  History, Map, BarChart3, Images, Infinity as InfinityIcon, MapPinned, 
   WifiOff, Palette, Headphones, ChevronLeft, Star, Loader2, Settings
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -22,7 +22,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Map: <Map size={18} />,
   BarChart3: <BarChart3 size={18} />,
   Images: <Images size={18} />,
-  Infinity: <Infinity size={18} />,
+  Infinity: <InfinityIcon size={18} />,
   Crown: <Crown size={18} />,
   MapPinned: <MapPinned size={18} />,
   WifiOff: <WifiOff size={18} />,

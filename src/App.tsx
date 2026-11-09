@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,22 +11,28 @@ import { SubscriptionProvider } from "@/context/SubscriptionContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import FeedPage from "./pages/FeedPage";
-import MapPage from "./pages/MapPage";
-import TripsPage from "./pages/TripsPage";
-import AchievementsPage from "./pages/AchievementsPage";
-import ProfilePage from "./pages/ProfilePage";
-import ActiveTripPage from "./pages/ActiveTripPage";
-import TripDetailPage from "./pages/TripDetailPage";
-import UserProfilePage from "./pages/UserProfilePage";
-import FollowersPage from "./pages/FollowersPage";
-import WrappedPage from "./pages/WrappedPage";
-import PricingPage from "./pages/PricingPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
+const MapPage = lazy(() => import("./pages/MapPage"));
+const TripsPage = lazy(() => import("./pages/TripsPage"));
+const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const ActiveTripPage = lazy(() => import("./pages/ActiveTripPage"));
+const TripDetailPage = lazy(() => import("./pages/TripDetailPage"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const FollowersPage = lazy(() => import("./pages/FollowersPage"));
+const WrappedPage = lazy(() => import("./pages/WrappedPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 import AuthPage from "./pages/AuthPage";
-import InstallPage from "./pages/InstallPage";
+const InstallPage = lazy(() => import("./pages/InstallPage"));
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const PageLoading = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -38,6 +45,7 @@ const App = () => (
               <Sonner />
               <BrowserRouter>
                 <div className="min-h-screen bg-background">
+                  <Suspense fallback={<PageLoading />}>
                   <Routes>
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
@@ -55,6 +63,7 @@ const App = () => (
                     <Route path="/install" element={<InstallPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  </Suspense>
                   <BottomNav />
                 </div>
               </BrowserRouter>

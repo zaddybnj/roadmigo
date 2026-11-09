@@ -13,7 +13,7 @@ import { PhotoUploader } from '@/components/PhotoUploader';
 import { getCategoryInfo } from '@/types/milestone';
 
 const ActiveTripPage = () => {
-  const { activeTrip, isTracking, addPhoto, routePreview } = useTrip();
+  const { activeTrip, isTracking, addPhotos, uploadPhotos, routePreview } = useTrip();
   const navigate = useNavigate();
   const [showControlsModal, setShowControlsModal] = useState(false);
 
@@ -223,7 +223,7 @@ const ActiveTripPage = () => {
               <span className="text-sm text-muted-foreground">({activeTrip.photos.length})</span>
             </div>
             <PhotoUploader 
-              onPhotosAdd={(photos) => photos.forEach(p => addPhoto(p))}
+              onPhotosAdd={async (urls, files) => { await uploadPhotos(files); await addPhotos(urls); }}
               currentCount={activeTrip.photos.length}
             />
           </div>

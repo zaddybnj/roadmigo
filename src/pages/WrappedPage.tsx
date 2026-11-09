@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { currentUser, visitedStates, trips, trophies, achievements } from '@/data/mockData';
+import { useTrip } from '@/context/TripContext';
+import { stateName } from '@/lib/states';
+import { computeGamification, rarestUnlocked } from '@/lib/gamification';
+import type { Achievement } from '@/types';
 import { ShareMenu } from '@/components/ShareMenu';
 import { ChevronLeft, ChevronRight, X, Share2, Sparkles, MapPin, Moon, Route, Trophy, Star, Flame, Mountain, Compass } from 'lucide-react';
 
@@ -32,19 +35,14 @@ const getTravelTitle = (miles: number, states: number, nights: number): { title:
 };
 
 // Get top achievement
-const getTopAchievement = () => {
-  const allBadges = achievements.flatMap(cat => cat.badges);
-  const unlocked = allBadges.filter(b => b.unlockedAt);
-  // Prioritize by rarity
-  const rarityOrder = { legendary: 0, epic: 1, rare: 2, common: 3 };
-  const sorted = unlocked.sort((a, b) => 
-    (rarityOrder[a.rarity] || 3) - (rarityOrder[b.rarity] || 3)
-  );
-  return sorted[0];
-};
+const getTopAchievement = (achievements: Achievement[], year: number) =>
+  rarestUnlocked(achievements.map(a => ({
+    ...a,
+    badges: a.badges.filter(b => b.unlockedAt?.startsWith(String(year))),
+  })));
 
 // Get favorite destination based on trips
-const getFavoriteDestination = () => {
+const getFavoriteDestination = (trips: { states: string[] }[]) => {
   const stateCounts: Record<string, number> = {};
   trips.forEach(trip => {
     trip.states.forEach(state => {
@@ -52,16 +50,8 @@ const getFavoriteDestination = () => {
     });
   });
   
-  const stateNames: Record<string, string> = {
-    CA: 'California', OR: 'Oregon', WA: 'Washington', AZ: 'Arizona',
-    UT: 'Utah', CO: 'Colorado', NV: 'Nevada', TX: 'Texas',
-    MT: 'Montana', WY: 'Wyoming', ID: 'Idaho', NM: 'New Mexico',
-    VT: 'Vermont', NH: 'New Hampshire', ME: 'Maine', MA: 'Massachusetts',
-    FL: 'Florida', NY: 'New York', NC: 'North Carolina', TN: 'Tennessee'
-  };
-  
   const topState = Object.entries(stateCounts).sort(([,a], [,b]) => b - a)[0];
-  return topState ? { state: topState[0], name: stateNames[topState[0]] || topState[0], count: topState[1] } : null;
+  return topState ? { state: topState[0], name: stateName(topState[0]), count: topState[1] } : null;
 };
 
 const WrappedPage = () => {
@@ -71,11 +61,18 @@ const WrappedPage = () => {
   const [shareSlide, setShareSlide] = useState<number | null>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  const stats = currentUser.stats;
+  const { completedTrips } = useTrip();
+  const year = new Date().getFullYear();
+  // This year's trips drive the recap; all-time trips decide which badges were earned when
+  const yearTrips = completedTrips.filter(t => new Date(t.endDate || t.startDate).getFullYear() === year);
+  const allTime = computeGamification(completedTrips);
+  const yearStats = computeGamification(yearTrips).stats;
+  const stats = { totalMiles: yearStats.totalMiles, nightsCamped: yearStats.nightsCamped };
+  const visitedStates = yearStats.statesVisited;
   const travelTitle = getTravelTitle(stats.totalMiles, visitedStates.length, stats.nightsCamped);
-  const topAchievement = getTopAchievement();
-  const favoriteDestination = getFavoriteDestination();
-  const unlockedTrophies = trophies.filter(t => t.unlockedAt).length;
+  const topAchievement = getTopAchievement(allTime.achievements, year);
+  const favoriteDestination = getFavoriteDestination(yearTrips);
+  const unlockedTrophies = allTime.trophies.filter(t => t.unlockedAt?.startsWith(String(year))).length;
 
   const slides = [
     { id: 'intro', type: 'intro' },
@@ -132,7 +129,7 @@ const WrappedPage = () => {
       case 'title':
         return { title: travelTitle.title, description: travelTitle.subtitle };
       default:
-        return { title: "My 2024 RV Wrapped", description: "Check out my year in review!" };
+        return { title: `My ${year} RV Wrapped`, description: "Check out my year in review!" };
     }
   };
 
@@ -170,7 +167,7 @@ const WrappedPage = () => {
               transition={{ delay: 0.5 }}
               className="font-display text-4xl font-bold mb-4 text-gradient-sunset"
             >
-              Your 2024
+              Your {year}
             </motion.h1>
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
@@ -382,7 +379,7 @@ const WrappedPage = () => {
               className="font-display text-5xl font-bold mb-2"
               style={{ background: 'linear-gradient(135deg, #f43f5e, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
-              {favoriteDestination?.name || 'California'}
+              {favoriteDestination?.name || 'Still out there'}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -390,7 +387,9 @@ const WrappedPage = () => {
               transition={{ delay: 1 }}
               className="text-muted-foreground mt-6 text-sm"
             >
-              You visited {favoriteDestination?.count || 3} times this year! 🎯
+              {favoriteDestination
+                ? `You visited ${favoriteDestination.count} time${favoriteDestination.count === 1 ? '' : 's'} this year! 🎯`
+                : 'Log a trip to find your favorite spot 🎯'}
             </motion.p>
             <motion.div
               initial={{ opacity: 0 }}
@@ -429,7 +428,7 @@ const WrappedPage = () => {
               transition={{ type: "spring", delay: 0.6 }}
               className="text-7xl mb-4"
             >
-              {topAchievement?.icon || '🏆'}
+              {topAchievement?.icon || '🧭'}
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
@@ -438,7 +437,7 @@ const WrappedPage = () => {
               className="font-display text-3xl font-bold mb-2"
               style={{ background: 'linear-gradient(135deg, #eab308, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
-              {topAchievement?.name || 'Road Legend'}
+              {topAchievement?.name || 'Your first badge awaits'}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
@@ -446,7 +445,7 @@ const WrappedPage = () => {
               transition={{ delay: 1 }}
               className="text-muted-foreground text-sm max-w-xs"
             >
-              {topAchievement?.description || 'An extraordinary achievement'}
+              {topAchievement?.description || 'Finish a trip to start earning badges'}
             </motion.p>
             <motion.div
               initial={{ opacity: 0 }}
@@ -515,7 +514,7 @@ const WrappedPage = () => {
               animate={{ opacity: 1, y: 0 }}
               className="font-display text-3xl font-bold mb-8 text-gradient-sunset"
             >
-              Your 2024 Journey
+              Your {year} Journey
             </motion.h1>
             
             <motion.div
@@ -576,7 +575,7 @@ const WrappedPage = () => {
               transition={{ delay: 1.2 }}
               className="text-muted-foreground text-sm mt-6"
             >
-              Here's to more adventures in 2025! 🚐✨
+              Here's to more adventures in {year + 1}! 🚐✨
             </motion.p>
           </div>
         );

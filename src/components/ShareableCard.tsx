@@ -1,3 +1,4 @@
+import { SITE_URL } from '@/lib/site';
 import { Trip, Badge } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Instagram, Facebook, Twitter, MapPin, Calendar, Route } from 'lucide-react';
@@ -21,7 +22,7 @@ export const ShareableCard = ({ isOpen, onClose, type, trip, badge }: ShareableC
       ? `I earned the "${badge.name}" badge! ${badge.description} 🏆`
       : '';
 
-    const shareUrl = window.location.origin;
+    const shareUrl = SITE_URL;
 
     if (platform === 'download') {
       // For download, we'd use html2canvas in production

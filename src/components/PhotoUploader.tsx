@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, Image, Link, Camera } from 'lucide-react';
 
 interface PhotoUploaderProps {
-  onPhotosAdd: (photos: string[]) => void;
+  /** Called with pasted web URLs and picked files (files still need uploading). */
+  onPhotosAdd: (urls: string[], files: File[]) => void | Promise<void>;
   maxPhotos?: number;
   currentCount?: number;
 }
@@ -12,6 +13,9 @@ export const PhotoUploader = ({ onPhotosAdd, maxPhotos = 20, currentCount = 0 }:
   const [isOpen, setIsOpen] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urls, setUrls] = useState<string[]>([]);
+  // Local preview URL -> picked file (previews are blob: URLs that only work on this device)
+  const [fileMap, setFileMap] = useState<Map<string, File>>(new Map());
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const remainingSlots = maxPhotos - currentCount;
@@ -21,6 +25,7 @@ export const PhotoUploader = ({ onPhotosAdd, maxPhotos = 20, currentCount = 0 }:
     if (!files) return;
 
     const newUrls: string[] = [];
+    const newFiles = new Map(fileMap);
     const filesToProcess = Math.min(files.length, remainingSlots - urls.length);
 
     for (let i = 0; i < filesToProcess; i++) {
@@ -28,10 +33,13 @@ export const PhotoUploader = ({ onPhotosAdd, maxPhotos = 20, currentCount = 0 }:
       if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
         newUrls.push(url);
+        newFiles.set(url, file);
       }
     }
 
     setUrls(prev => [...prev, ...newUrls]);
+    setFileMap(newFiles);
+    e.target.value = '';
   };
 
   const handleUrlAdd = () => {
@@ -50,16 +58,32 @@ export const PhotoUploader = ({ onPhotosAdd, maxPhotos = 20, currentCount = 0 }:
   };
 
   const handleRemoveUrl = (index: number) => {
+    const removed = urls[index];
+    if (fileMap.has(removed)) {
+      URL.revokeObjectURL(removed);
+      const next = new Map(fileMap);
+      next.delete(removed);
+      setFileMap(next);
+    }
     setUrls(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
-    if (urls.length > 0) {
-      onPhotosAdd(urls);
+  const handleSubmit = async () => {
+    if (urls.length === 0 || isSaving) return;
+    setIsSaving(true);
+    try {
+      const webUrls = urls.filter(u => !fileMap.has(u));
+      const pickedFiles = urls.filter(u => fileMap.has(u)).map(u => fileMap.get(u)!);
+      await onPhotosAdd(webUrls, pickedFiles);
+      fileMap.forEach((_, preview) => URL.revokeObjectURL(preview));
       setUrls([]);
+      setFileMap(new Map());
       setIsOpen(false);
+    } finally {
+      setIsSaving(false);
     }
   };
+
 
   return (
     <>
@@ -190,12 +214,12 @@ export const PhotoUploader = ({ onPhotosAdd, maxPhotos = 20, currentCount = 0 }:
               {/* Submit Button */}
               <button
                 onClick={handleSubmit}
-                disabled={urls.length === 0}
+                disabled={urls.length === 0 || isSaving}
                 className="w-full py-4 rounded-xl gradient-sunset text-primary-foreground font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
                 <div className="flex items-center justify-center gap-2">
                   <Image className="w-5 h-5" />
-                  Add {urls.length || ''} Photo{urls.length !== 1 ? 's' : ''} to Trip
+                  {isSaving ? 'Uploading…' : <>Add {urls.length || ''} Photo{urls.length !== 1 ? 's' : ''} to Trip</>}
                 </div>
               </button>
             </motion.div>

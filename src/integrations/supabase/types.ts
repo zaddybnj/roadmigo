@@ -342,9 +342,26 @@ export type Database = {
       }
     }
     Functions: {
+      are_friends: {
+        Args: { a: string; b: string }
+        Returns: boolean
+      }
       award_badge: {
         Args: { p_badge_id: string; p_user_id?: string }
         Returns: undefined
+      }
+      get_profile_cards: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          avatar_url: string | null
+          display_name: string
+          user_id: string
+          username: string
+        }[]
+      }
+      level_for_xp: {
+        Args: { p_xp: number }
+        Returns: number
       }
     }
     Enums: {
